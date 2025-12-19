@@ -30,41 +30,7 @@
 <h2>Spell & Learn</h2>
 <canvas id="c"></canvas>
 
-<!-- ================= INSTRUCTIONS (ALWAYS SHOW) ================= -->
-<div id="helpPopup" style="
-  display:flex;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.65);
-  align-items:center;
-  justify-content:center;
-  z-index:30;">
-  <div style="
-    background:#fff;
-    border-radius:28px;
-    padding:28px;
-    width:92%;
-    max-width:380px;
-    text-align:center;">
-    <h1 style="font-size:34px;">How to Play 🎮</h1>
-    <p style="font-size:22px;">👉 Move the 🐱 cat</p>
-    <p style="font-size:22px;">🔤 Catch the moving letters</p>
-    <p style="font-size:22px;">🎉 Spell the word</p>
-    <button onclick="closeHelp()" style="
-      margin-top:18px;
-      font-size:26px;
-      padding:16px 36px;
-      border:none;
-      border-radius:20px;
-      background:#4caf50;
-      color:white;
-      font-weight:bold;">
-      LET’S PLAY 🚀
-    </button>
-  </div>
-</div>
-
-<!-- ================= WORD COMPLETE POPUP ================= -->
+<!-- WORD COMPLETE POPUP -->
 <div id="popup" style="
   display:none;
   position:fixed;
@@ -72,13 +38,14 @@
   background:rgba(0,0,0,0.45);
   align-items:center;
   justify-content:center;
-  z-index:20;">
+  z-index:10;">
   <div style="
     background:#fff;
     padding:24px;
     border-radius:24px;
     width:85%;
-    max-width:320px;">
+    max-width:320px;
+    text-align:center;">
     <div id="popupImg" style="font-size:96px">🎉</div>
     <div id="popupWord" style="font-size:36px;font-weight:bold;margin:12px 0"></div>
     <button id="popupBtn" style="
@@ -105,30 +72,23 @@ function resize(){
 resize();
 window.addEventListener("resize", resize);
 
-/* ================= BACKGROUND IMAGE ================= */
+/* ================= BACKGROUND ================= */
 const bg = new Image();
 bg.src = "bg.png";
 
-/* ================= WORD LIST (80 WORDS) ================= */
+/* ================= STORAGE ================= */
+const STORAGE_KEY = "spellLearnProgress";
+
+/* ================= WORDS ================= */
 const words = [
-  // Animals (20)
   "CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR",
   "FROG","FISH","BIRD","DEER","MONKEY","HORSE","SHEEP","RABBIT","MOUSE","ELEPHANT",
-
-  // Fruits & Food (20)
   "APPLE","MANGO","BANANA","GRAPE","ORANGE","PEACH","PEAR","PLUM","LEMON","CHERRY",
   "MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE",
-
-  // Vehicles (10)
   "CAR","BUS","VAN","BIKE","TRAIN","TRUCK","SHIP","PLANE","SCOOTER","TRACTOR",
-
-  // Home & Objects (15)
   "BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED",
   "DOOR","KEY","PHONE","CLOCK","SHOE",
-
-  // Nature (15)
-  "SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS",
-  "RIVER","MOUNTAIN","WIND","FIRE","STONE"
+  "SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS"
 ];
 
 /* ================= EMOJI MAP ================= */
@@ -138,87 +98,68 @@ const emojiMap = {
   FROG:"🐸", FISH:"🐟", BIRD:"🐦", DEER:"🦌",
   MONKEY:"🐒", HORSE:"🐴", SHEEP:"🐑", RABBIT:"🐰",
   MOUSE:"🐭", ELEPHANT:"🐘",
-
   APPLE:"🍎", MANGO:"🥭", BANANA:"🍌", GRAPE:"🍇",
   ORANGE:"🍊", PEACH:"🍑", PEAR:"🍐", PLUM:"🍑",
   LEMON:"🍋", CHERRY:"🍒",
   MILK:"🥛", BREAD:"🍞", EGG:"🥚", CAKE:"🍰",
   RICE:"🍚", CORN:"🌽", HONEY:"🍯", JUICE:"🧃",
   COOKIE:"🍪", CHEESE:"🧀",
-
   CAR:"🚗", BUS:"🚌", VAN:"🚐", BIKE:"🚲",
   TRAIN:"🚆", TRUCK:"🚚", SHIP:"🚢",
   PLANE:"✈️", SCOOTER:"🛴", TRACTOR:"🚜",
-
   BALL:"⚽", BOOK:"📘", PEN:"🖊️", CUP:"☕",
   HAT:"🧢", BAG:"🎒", BOX:"📦", CHAIR:"🪑",
   TABLE:"🪑", BED:"🛏️", DOOR:"🚪", KEY:"🔑",
   PHONE:"📱", CLOCK:"⏰", SHOE:"👟",
-
   SUN:"☀️", MOON:"🌙", STAR:"⭐", TREE:"🌳",
   RAIN:"🌧️", SNOW:"❄️", CLOUD:"☁️", FLOWER:"🌸",
-  LEAF:"🍃", GRASS:"🌱", RIVER:"🏞️",
-  MOUNTAIN:"⛰️", WIND:"💨", FIRE:"🔥", STONE:"🪨"
+  LEAF:"🍃", GRASS:"🌱"
 };
 
 /* ================= GAME STATE ================= */
-let w = 0;
-let i = 0;
+let wordIndex = 0;
+let letterIndex = 0;
 let collected = "";
-let canCollide = false;
-let userStarted = false;
+let locked = false;
 
-const player = { x:200, y:300 };
-
+const player = { x:200, y:300, bounce:0 };
 const letter = {
-  x:0, y:0,
-  vx:1.2, vy:1.1,
-  char: words[0][0],
-  color:"#66bb6a"
+  x:100, y:150,
+  char:"",
+  vx:0.6,
+  vy:0.5,
+  float:0
 };
 
-/* ================= UTILITIES ================= */
-function rand(min,max){ return Math.random()*(max-min)+min; }
-
-function randomColor(){
-  const colors=["#ff7043","#42a5f5","#66bb6a","#ab47bc","#ffca28"];
-  return colors[Math.floor(Math.random()*colors.length)];
+/* ================= LOAD / SAVE ================= */
+function saveProgress(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    wordIndex, letterIndex, collected
+  }));
 }
 
-/* ================= SAFE LETTER SPAWN ================= */
-function spawnSafeLetter(){
-  let tries=0;
-  do{
-    letter.x = rand(40, canvas.width-140);
-    letter.y = rand(100, canvas.height-200);
-    tries++;
-  }while(
-    Math.hypot(
-      (player.x+40)-(letter.x+60),
-      (player.y+40)-(letter.y+60)
-    ) < 180 && tries < 20
-  );
-
-  letter.vx = rand(-1.5,1.5);
-  letter.vy = rand(-1.5,1.5);
-  letter.color = randomColor();
-
-  canCollide = false;
-  setTimeout(()=>canCollide=true,600);
+function loadProgress(){
+  const data = localStorage.getItem(STORAGE_KEY);
+  if(!data) return;
+  try{
+    const p = JSON.parse(data);
+    wordIndex = p.wordIndex || 0;
+    letterIndex = p.letterIndex || 0;
+    collected = p.collected || "";
+  }catch(e){}
 }
 
 /* ================= SPEECH ================= */
 function speak(text){
-  if(!userStarted) return;
+  if(!window.speechSynthesis) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 0.6;
   speechSynthesis.speak(u);
 }
 
-/* ================= INPUT ================= */
+/* ================= TOUCH ================= */
 canvas.addEventListener("touchmove", e=>{
-  userStarted = true;
   const r = canvas.getBoundingClientRect();
   const t = e.touches[0];
   player.x = t.clientX - r.left - 40;
@@ -226,18 +167,11 @@ canvas.addEventListener("touchmove", e=>{
   e.preventDefault();
 });
 
-canvas.addEventListener("mousemove", e=>{
-  userStarted = true;
-  const r = canvas.getBoundingClientRect();
-  player.x = e.clientX - r.left - 40;
-  player.y = e.clientY - r.top - 40;
-});
-
 /* ================= DRAW ================= */
 function drawBackground(){
   if(bg.complete){
     ctx.drawImage(bg,0,0,canvas.width,canvas.height);
-  }else{
+  } else {
     ctx.fillStyle="#dff1ff";
     ctx.fillRect(0,0,canvas.width,canvas.height);
   }
@@ -253,20 +187,28 @@ function drawUI(){
 }
 
 function drawPlayer(){
-  ctx.beginPath();
-  ctx.arc(player.x+40, player.y+40, 40, 0, Math.PI*2);
-  ctx.fillStyle="#ffd180";
-  ctx.fill();
+  player.bounce = Math.sin(Date.now()/300)*4;
   ctx.font="52px Arial";
   ctx.textAlign="center";
-  ctx.fillText("🐱", player.x+40, player.y+52);
+  ctx.fillText("🐱", player.x+40, player.y+52+player.bounce);
 }
 
 function drawLetter(){
+  letter.float += 0.03;
+  letter.x += letter.vx;
+  letter.y += letter.vy + Math.sin(letter.float)*0.3;
+
+  if(letter.x < 0 || letter.x > canvas.width-120) letter.vx *= -1;
+  if(letter.y < 80 || letter.y > canvas.height-120) letter.vy *= -1;
+
   ctx.beginPath();
   ctx.arc(letter.x+60, letter.y+60, 55, 0, Math.PI*2);
-  ctx.fillStyle=letter.color;
+  ctx.fillStyle="#ff7043";
+  ctx.shadowColor="#ffccbc";
+  ctx.shadowBlur=15;
   ctx.fill();
+  ctx.shadowBlur=0;
+
   ctx.fillStyle="#fff";
   ctx.font="bold 72px Arial";
   ctx.textAlign="center";
@@ -274,69 +216,69 @@ function drawLetter(){
   ctx.fillText(letter.char, letter.x+60, letter.y+60);
 }
 
-function moveLetter(){
-  letter.x += letter.vx;
-  letter.y += letter.vy;
-  if(letter.x<20 || letter.x>canvas.width-140) letter.vx *= -1;
-  if(letter.y<80 || letter.y>canvas.height-160) letter.vy *= -1;
-}
-
 /* ================= POPUP ================= */
+const popup = document.getElementById("popup");
+const popupImg = document.getElementById("popupImg");
+const popupWord = document.getElementById("popupWord");
+const popupBtn = document.getElementById("popupBtn");
+
 popupBtn.onclick = ()=>{
   popup.style.display="none";
-  w = (w+1) % words.length;
-  i = 0;
+  wordIndex = (wordIndex+1) % words.length;
+  letterIndex = 0;
   collected = "";
-  letter.char = words[w][0];
-  spawnSafeLetter();
+  saveProgress();
+  spawnLetter();
+  locked = false;
 };
 
-/* ================= COLLISION ================= */
-function check(){
-  if(!canCollide) return;
-
-  const dx=(player.x+40)-(letter.x+60);
-  const dy=(player.y+40)-(letter.y+60);
-
-  if(Math.hypot(dx,dy) < 85){
-    canCollide=false;
-    collected += letter.char;
-    speak(letter.char);
-    i++;
-
-    if(i < words[w].length){
-      setTimeout(()=>{
-        letter.char = words[w][i];
-        spawnSafeLetter();
-      },300);
-    }else{
-      setTimeout(()=>{
-        speak(words[w]);
-        popupImg.textContent = emojiMap[words[w]];
-        popupWord.textContent = words[w];
-        popup.style.display="flex";
-      },400);
-    }
-  }
+/* ================= LOGIC ================= */
+function spawnLetter(){
+  letter.char = words[wordIndex][letterIndex];
+  letter.x = Math.random()*(canvas.width-140)+40;
+  letter.y = Math.random()*(canvas.height-200)+100;
+  saveProgress();
 }
 
-/* ================= HELP ================= */
-function closeHelp(){
-  document.getElementById("helpPopup").style.display="none";
+function checkCollision(){
+  if(locked) return;
+  const dx = (player.x+40)-(letter.x+60);
+  const dy = (player.y+40)-(letter.y+60);
+  if(Math.hypot(dx,dy) < 85){
+    locked = true;
+    collected += letter.char;
+    speak(letter.char);
+    letterIndex++;
+    saveProgress();
+    if(letterIndex < words[wordIndex].length){
+      setTimeout(()=>{
+        spawnLetter();
+        locked = false;
+      },400);
+    } else {
+      setTimeout(()=>{
+        speak(words[wordIndex]);
+        popupImg.textContent = emojiMap[words[wordIndex]] || "🎉";
+        popupWord.textContent = words[wordIndex];
+        popup.style.display="flex";
+      },500);
+    }
+  }
 }
 
 /* ================= LOOP ================= */
 function loop(){
   drawBackground();
   drawUI();
-  moveLetter();
   drawLetter();
   drawPlayer();
-  check();
+  checkCollision();
   requestAnimationFrame(loop);
 }
 
-spawnSafeLetter();
+/* ================= START ================= */
+loadProgress();
+spawnLetter();
 loop();
 </script>
 
