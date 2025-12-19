@@ -7,13 +7,21 @@
 
 <style>
   body{
-    margin:0; overflow:hidden;
+    margin:0;
+    overflow:hidden;
     font-family:Arial,sans-serif;
     background:#cfe9ff;
     text-align:center;
   }
-  h2{margin:6px 0;font-size:28px;}
-  canvas{display:block;margin:0 auto;touch-action:none;}
+  h2{
+    margin:6px 0;
+    font-size:28px;
+  }
+  canvas{
+    display:block;
+    margin:0 auto;
+    touch-action:none;
+  }
 </style>
 </head>
 
@@ -22,127 +30,210 @@
 <h2>Spell & Learn</h2>
 <canvas id="c"></canvas>
 
-<!-- INSTRUCTIONS -->
+<!-- ================= INSTRUCTIONS (ALWAYS SHOW) ================= -->
 <div id="helpPopup" style="
-  display:flex;position:fixed;inset:0;
+  display:flex;
+  position:fixed;
+  inset:0;
   background:rgba(0,0,0,0.65);
-  align-items:center;justify-content:center;z-index:30;">
+  align-items:center;
+  justify-content:center;
+  z-index:30;">
   <div style="
-    background:#fff;border-radius:28px;
-    padding:28px;width:92%;max-width:380px;text-align:center;">
+    background:#fff;
+    border-radius:28px;
+    padding:28px;
+    width:92%;
+    max-width:380px;
+    text-align:center;">
     <h1 style="font-size:34px;">How to Play 🎮</h1>
     <p style="font-size:22px;">👉 Move the 🐱 cat</p>
-    <p style="font-size:22px;">🔤 Catch the letters</p>
+    <p style="font-size:22px;">🔤 Catch the moving letters</p>
     <p style="font-size:22px;">🎉 Spell the word</p>
     <button onclick="closeHelp()" style="
-      margin-top:18px;font-size:26px;
-      padding:16px 36px;border:none;
-      border-radius:20px;background:#4caf50;color:white;">
+      margin-top:18px;
+      font-size:26px;
+      padding:16px 36px;
+      border:none;
+      border-radius:20px;
+      background:#4caf50;
+      color:white;
+      font-weight:bold;">
       LET’S PLAY 🚀
     </button>
   </div>
 </div>
 
-<!-- WORD COMPLETE POPUP -->
+<!-- ================= WORD COMPLETE POPUP ================= -->
 <div id="popup" style="
-  display:none;position:fixed;inset:0;
+  display:none;
+  position:fixed;
+  inset:0;
   background:rgba(0,0,0,0.45);
-  align-items:center;justify-content:center;z-index:20;">
+  align-items:center;
+  justify-content:center;
+  z-index:20;">
   <div style="
-    background:#fff;padding:24px;
-    border-radius:24px;width:85%;max-width:320px;">
+    background:#fff;
+    padding:24px;
+    border-radius:24px;
+    width:85%;
+    max-width:320px;">
     <div id="popupImg" style="font-size:96px">🎉</div>
     <div id="popupWord" style="font-size:36px;font-weight:bold;margin:12px 0"></div>
     <button id="popupBtn" style="
-      font-size:24px;padding:12px 28px;
-      border:none;border-radius:16px;
-      background:#4caf50;color:#fff;">OK</button>
+      font-size:24px;
+      padding:12px 28px;
+      border:none;
+      border-radius:16px;
+      background:#4caf50;
+      color:#fff;">
+      OK
+    </button>
   </div>
 </div>
 
 <script>
-/* ===== CANVAS ===== */
-const canvas=document.getElementById("c");
-const ctx=canvas.getContext("2d");
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
-resize();addEventListener("resize",resize);
+/* ================= CANVAS ================= */
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
 
-/* ===== BACKGROUND IMAGE ===== */
+function resize(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+/* ================= BACKGROUND IMAGE ================= */
 const bg = new Image();
 bg.src = "bg.png";
 
-/* ===== WORDS ===== */
-const words=["CAT","DOG","FISH","BIRD","APPLE","BALL","CAR","SUN","TREE","MILK"];
-let w=0,i=0,collected="";
+/* ================= WORD LIST (80 WORDS) ================= */
+const words = [
+  // Animals (20)
+  "CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR",
+  "FROG","FISH","BIRD","DEER","MONKEY","HORSE","SHEEP","RABBIT","MOUSE","ELEPHANT",
 
-/* ===== EMOJI MAP (RESTORED) ===== */
-const emojiMap={
-  CAT:"🐱",DOG:"🐶",FISH:"🐟",BIRD:"🐦",
-  APPLE:"🍎",BALL:"⚽",CAR:"🚗",
-  SUN:"☀️",TREE:"🌳",MILK:"🥛"
+  // Fruits & Food (20)
+  "APPLE","MANGO","BANANA","GRAPE","ORANGE","PEACH","PEAR","PLUM","LEMON","CHERRY",
+  "MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE",
+
+  // Vehicles (10)
+  "CAR","BUS","VAN","BIKE","TRAIN","TRUCK","SHIP","PLANE","SCOOTER","TRACTOR",
+
+  // Home & Objects (15)
+  "BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED",
+  "DOOR","KEY","PHONE","CLOCK","SHOE",
+
+  // Nature (15)
+  "SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS",
+  "RIVER","MOUNTAIN","WIND","FIRE","STONE"
+];
+
+/* ================= EMOJI MAP ================= */
+const emojiMap = {
+  CAT:"🐱", DOG:"🐶", COW:"🐄", PIG:"🐷", HEN:"🐔", DUCK:"🦆",
+  GOAT:"🐐", LION:"🦁", TIGER:"🐯", BEAR:"🐻",
+  FROG:"🐸", FISH:"🐟", BIRD:"🐦", DEER:"🦌",
+  MONKEY:"🐒", HORSE:"🐴", SHEEP:"🐑", RABBIT:"🐰",
+  MOUSE:"🐭", ELEPHANT:"🐘",
+
+  APPLE:"🍎", MANGO:"🥭", BANANA:"🍌", GRAPE:"🍇",
+  ORANGE:"🍊", PEACH:"🍑", PEAR:"🍐", PLUM:"🍑",
+  LEMON:"🍋", CHERRY:"🍒",
+  MILK:"🥛", BREAD:"🍞", EGG:"🥚", CAKE:"🍰",
+  RICE:"🍚", CORN:"🌽", HONEY:"🍯", JUICE:"🧃",
+  COOKIE:"🍪", CHEESE:"🧀",
+
+  CAR:"🚗", BUS:"🚌", VAN:"🚐", BIKE:"🚲",
+  TRAIN:"🚆", TRUCK:"🚚", SHIP:"🚢",
+  PLANE:"✈️", SCOOTER:"🛴", TRACTOR:"🚜",
+
+  BALL:"⚽", BOOK:"📘", PEN:"🖊️", CUP:"☕",
+  HAT:"🧢", BAG:"🎒", BOX:"📦", CHAIR:"🪑",
+  TABLE:"🪑", BED:"🛏️", DOOR:"🚪", KEY:"🔑",
+  PHONE:"📱", CLOCK:"⏰", SHOE:"👟",
+
+  SUN:"☀️", MOON:"🌙", STAR:"⭐", TREE:"🌳",
+  RAIN:"🌧️", SNOW:"❄️", CLOUD:"☁️", FLOWER:"🌸",
+  LEAF:"🍃", GRASS:"🌱", RIVER:"🏞️",
+  MOUNTAIN:"⛰️", WIND:"💨", FIRE:"🔥", STONE:"🪨"
 };
 
-/* ===== PLAYER ===== */
-const player={x:200,y:300};
+/* ================= GAME STATE ================= */
+let w = 0;
+let i = 0;
+let collected = "";
+let canCollide = false;
+let userStarted = false;
 
-/* ===== LETTER ===== */
-const letter={x:0,y:0,vx:1.2,vy:1.1,char:words[0][0],color:"#66bb6a"};
+const player = { x:200, y:300 };
 
-let canCollide=false;
-let userStarted=false;
+const letter = {
+  x:0, y:0,
+  vx:1.2, vy:1.1,
+  char: words[0][0],
+  color:"#66bb6a"
+};
 
-/* ===== HELP ===== */
-function closeHelp(){
-  document.getElementById("helpPopup").style.display="none";
-}
+/* ================= UTILITIES ================= */
+function rand(min,max){ return Math.random()*(max-min)+min; }
 
-/* ===== UTIL ===== */
-function rand(min,max){return Math.random()*(max-min)+min;}
 function randomColor(){
-  return ["#ff7043","#42a5f5","#66bb6a","#ab47bc","#ffca28"]
-    [Math.floor(Math.random()*5)];
+  const colors=["#ff7043","#42a5f5","#66bb6a","#ab47bc","#ffca28"];
+  return colors[Math.floor(Math.random()*colors.length)];
 }
 
-/* ===== SAFE SPAWN ===== */
+/* ================= SAFE LETTER SPAWN ================= */
 function spawnSafeLetter(){
   let tries=0;
   do{
-    letter.x=rand(40,canvas.width-140);
-    letter.y=rand(100,canvas.height-200);
+    letter.x = rand(40, canvas.width-140);
+    letter.y = rand(100, canvas.height-200);
     tries++;
   }while(
     Math.hypot(
       (player.x+40)-(letter.x+60),
       (player.y+40)-(letter.y+60)
-    )<180 && tries<20
+    ) < 180 && tries < 20
   );
-  letter.vx=rand(-1.5,1.5);
-  letter.vy=rand(-1.5,1.5);
-  letter.color=randomColor();
-  canCollide=false;
+
+  letter.vx = rand(-1.5,1.5);
+  letter.vy = rand(-1.5,1.5);
+  letter.color = randomColor();
+
+  canCollide = false;
   setTimeout(()=>canCollide=true,600);
 }
 
-/* ===== SPEECH ===== */
-function speak(t){
+/* ================= SPEECH ================= */
+function speak(text){
   if(!userStarted) return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t);
-  u.rate=0.6;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.6;
   speechSynthesis.speak(u);
 }
 
-/* ===== TOUCH ===== */
-canvas.addEventListener("touchmove",e=>{
-  userStarted=true;
-  const r=canvas.getBoundingClientRect();
-  const t=e.touches[0];
-  player.x=t.clientX-r.left-40;
-  player.y=t.clientY-r.top-40;
+/* ================= INPUT ================= */
+canvas.addEventListener("touchmove", e=>{
+  userStarted = true;
+  const r = canvas.getBoundingClientRect();
+  const t = e.touches[0];
+  player.x = t.clientX - r.left - 40;
+  player.y = t.clientY - r.top - 40;
   e.preventDefault();
 });
 
-/* ===== DRAW ===== */
+canvas.addEventListener("mousemove", e=>{
+  userStarted = true;
+  const r = canvas.getBoundingClientRect();
+  player.x = e.clientX - r.left - 40;
+  player.y = e.clientY - r.top - 40;
+});
+
+/* ================= DRAW ================= */
 function drawBackground(){
   if(bg.complete){
     ctx.drawImage(bg,0,0,canvas.width,canvas.height);
@@ -151,75 +242,90 @@ function drawBackground(){
     ctx.fillRect(0,0,canvas.width,canvas.height);
   }
 }
+
 function drawUI(){
   ctx.fillStyle="rgba(255,255,255,0.9)";
   ctx.fillRect(0,0,canvas.width,70);
   ctx.fillStyle="#333";
   ctx.font="bold 28px Arial";
   ctx.textAlign="center";
-  ctx.fillText("Word: "+collected,canvas.width/2,45);
+  ctx.fillText("Word: "+collected, canvas.width/2, 45);
 }
+
 function drawPlayer(){
   ctx.beginPath();
-  ctx.arc(player.x+40,player.y+40,40,0,Math.PI*2);
-  ctx.fillStyle="#ffd180";ctx.fill();
-  ctx.font="52px Arial";ctx.textAlign="center";
-  ctx.fillText("🐱",player.x+40,player.y+52);
+  ctx.arc(player.x+40, player.y+40, 40, 0, Math.PI*2);
+  ctx.fillStyle="#ffd180";
+  ctx.fill();
+  ctx.font="52px Arial";
+  ctx.textAlign="center";
+  ctx.fillText("🐱", player.x+40, player.y+52);
 }
+
 function drawLetter(){
   ctx.beginPath();
-  ctx.arc(letter.x+60,letter.y+60,55,0,Math.PI*2);
-  ctx.fillStyle=letter.color;ctx.fill();
+  ctx.arc(letter.x+60, letter.y+60, 55, 0, Math.PI*2);
+  ctx.fillStyle=letter.color;
+  ctx.fill();
   ctx.fillStyle="#fff";
   ctx.font="bold 72px Arial";
-  ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillText(letter.char,letter.x+60,letter.y+60);
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillText(letter.char, letter.x+60, letter.y+60);
 }
 
-/* ===== MOVE LETTER ===== */
 function moveLetter(){
-  letter.x+=letter.vx;
-  letter.y+=letter.vy;
-  if(letter.x<20||letter.x>canvas.width-140) letter.vx*=-1;
-  if(letter.y<80||letter.y>canvas.height-160) letter.vy*=-1;
+  letter.x += letter.vx;
+  letter.y += letter.vy;
+  if(letter.x<20 || letter.x>canvas.width-140) letter.vx *= -1;
+  if(letter.y<80 || letter.y>canvas.height-160) letter.vy *= -1;
 }
 
-/* ===== POPUP ===== */
-popupBtn.onclick=()=>{
+/* ================= POPUP ================= */
+popupBtn.onclick = ()=>{
   popup.style.display="none";
-  w=(w+1)%words.length;
-  i=0; collected="";
-  letter.char=words[w][0];
+  w = (w+1) % words.length;
+  i = 0;
+  collected = "";
+  letter.char = words[w][0];
   spawnSafeLetter();
 };
 
-/* ===== COLLISION ===== */
+/* ================= COLLISION ================= */
 function check(){
   if(!canCollide) return;
+
   const dx=(player.x+40)-(letter.x+60);
   const dy=(player.y+40)-(letter.y+60);
-  if(Math.hypot(dx,dy)<85){
+
+  if(Math.hypot(dx,dy) < 85){
     canCollide=false;
-    collected+=letter.char;
+    collected += letter.char;
     speak(letter.char);
     i++;
-    if(i<words[w].length){
+
+    if(i < words[w].length){
       setTimeout(()=>{
-        letter.char=words[w][i];
+        letter.char = words[w][i];
         spawnSafeLetter();
       },300);
     }else{
       setTimeout(()=>{
         speak(words[w]);
-        popupImg.textContent=emojiMap[words[w]]||"🎉";
-        popupWord.textContent=words[w];
+        popupImg.textContent = emojiMap[words[w]];
+        popupWord.textContent = words[w];
         popup.style.display="flex";
       },400);
     }
   }
 }
 
-/* ===== LOOP ===== */
+/* ================= HELP ================= */
+function closeHelp(){
+  document.getElementById("helpPopup").style.display="none";
+}
+
+/* ================= LOOP ================= */
 function loop(){
   drawBackground();
   drawUI();
