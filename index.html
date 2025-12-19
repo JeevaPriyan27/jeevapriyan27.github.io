@@ -44,143 +44,156 @@ input{
 
 <body>
 
-<!-- TOP BAR (GAME ONLY) -->
+<!-- TOP BAR -->
 <div class="topbar hidden" id="gameTopbar">
   <div style="font-size:18px">⭐ <span id="stars">0</span></div>
-  <button class="btn" onclick="openResetConfirm()">🔄 Reset</button>
+  <button class="btn" onclick="location.reload()">🏠 Home</button>
 </div>
 
 <canvas id="c" class="hidden"></canvas>
 
-<!-- HOME SCREEN -->
+<!-- HOME -->
 <div class="overlay" id="home">
   <div class="card">
     <h2>Spell & Learn 🐱</h2>
-
-    <div id="profileSection">
-      <p id="greetText" style="font-size:18px"></p>
-      <input id="nameInput" placeholder="Enter your name (optional)">
-      <button class="btn" onclick="saveProfile()">Save Name</button>
-    </div>
-
+    <input id="nameInput" placeholder="Enter name (optional)">
+    <button class="btn" onclick="saveName()">Save Name</button>
+    <p id="greet"></p>
     <hr>
-
-    <p style="font-size:18px">Choose how to play</p>
-
-    <div>
-      <button class="btn btn-outline" onclick="selectMode('Animals')">🐶 Animals</button>
-      <button class="btn btn-outline" onclick="selectMode('Food')">🍎 Food</button>
-      <button class="btn btn-outline" onclick="selectMode('Vehicles')">🚗 Vehicles</button>
-      <button class="btn btn-outline" onclick="selectMode('Nature')">🌿 Nature</button>
-      <button class="btn btn-outline" onclick="selectMode('Home')">🏠 Home</button>
-      <button class="btn btn-outline" onclick="selectMode('Random')">🎲 Random Mix</button>
-    </div>
-
-    <p id="modeText" style="margin-top:10px;font-size:16px"></p>
-
-    <button class="btn" style="font-size:20px;margin-top:10px" onclick="startGame()">▶️ Play</button>
-  </div>
-</div>
-
-<!-- RESET CONFIRM -->
-<div class="overlay hidden" id="resetPanel">
-  <div class="card">
-    <h3>Reset Progress</h3>
-    <p>Type this word to confirm:</p>
-    <div id="resetWord" style="font-size:28px;font-weight:bold"></div>
-    <input id="resetInput">
-    <button class="btn" onclick="closeReset()">Cancel</button>
-    <button class="btn" id="confirmResetBtn" disabled>Confirm</button>
+    <p>Select mode (temporary)</p>
+    <button class="btn btn-outline" onclick="selectMode('Any')">Any</button>
+    <p id="modeText"></p>
+    <button class="btn" style="font-size:20px" onclick="startGame()">▶️ Play</button>
   </div>
 </div>
 
 <script>
-/* ================= BASIC SETUP ================= */
+/* ================= CANVAS ================= */
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
 resize();addEventListener("resize",resize);
 
-/* ================= PROFILE & MODE ================= */
-const STORE="spellLearnProfile";
-let profile={
-  name:"",
-  stars:0,
-  lastMode:"Animals"
-};
-let selectedMode="Animals";
+/* ================= STATE ================= */
+const STORE="spellLearnBridge";
+let name="",mode="Any";
+let stars=0;
+let wordIndex=0,letterIndex=0;
+let collecting=false,collisionEnabled=true;
 
-/* ================= LOAD PROFILE ================= */
-function loadProfile(){
-  try{
-    const d=JSON.parse(localStorage.getItem(STORE));
-    if(d) profile=d;
-  }catch{}
-  document.getElementById("stars").textContent=profile.stars||0;
-  selectedMode=profile.lastMode||"Animals";
-  updateHomeUI();
+const words=["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","BEAR","APPLE"];
+const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
+GOAT:"🐐",LION:"🦁",BEAR:"🐻",APPLE:"🍎"};
+
+const player={x:200,y:300};
+const letter={x:100,y:200,char:"",vx:.6,vy:.5,float:0};
+
+/* ================= HOME ================= */
+function saveName(){
+  name=document.getElementById("nameInput").value.trim();
+  localStorage.setItem(STORE,JSON.stringify({name,mode,stars}));
+  document.getElementById("greet").textContent=name?`Hi ${name}!`:"";
 }
-loadProfile();
-
-function saveProfile(){
-  const name=document.getElementById("nameInput").value.trim();
-  if(name) profile.name=name.substring(0,10);
-  localStorage.setItem(STORE,JSON.stringify(profile));
-  updateHomeUI();
+function selectMode(m){
+  mode=m;
+  document.getElementById("modeText").textContent="Selected: "+m;
 }
 
-function updateHomeUI(){
-  const greet=document.getElementById("greetText");
-  greet.textContent = profile.name ? `Hi, ${profile.name}! 👋` : "";
-  document.getElementById("nameInput").value=profile.name||"";
-  document.getElementById("modeText").textContent =
-    "Selected: " + selectedMode;
-}
-
-function selectMode(mode){
-  selectedMode=mode;
-  profile.lastMode=mode;
-  localStorage.setItem(STORE,JSON.stringify(profile));
-  updateHomeUI();
-}
-
-/* ================= START GAME ================= */
+/* ================= GAME ================= */
 function startGame(){
   document.getElementById("home").style.display="none";
   document.getElementById("gameTopbar").classList.remove("hidden");
   canvas.classList.remove("hidden");
-
-  // PHASE 2 will use selectedMode here
-  startGameplay();
+  spawn();
+  draw();
 }
 
-/* ================= RESET ================= */
-function openResetConfirm(){
-  resetTargetWord="CAT";
-  resetWord.textContent=resetTargetWord;
-  resetInput.value="";
-  confirmResetBtn.disabled=true;
-  resetPanel.classList.remove("hidden");
+/* ================= SPEECH ================= */
+function speak(t){
+  if(!speechSynthesis)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.rate=.6;
+  speechSynthesis.speak(u);
 }
-function closeReset(){
-  resetPanel.classList.add("hidden");
+
+/* ================= SPAWN ================= */
+function spawn(){
+  collecting=false;collisionEnabled=false;
+  letter.char=words[wordIndex][letterIndex];
+  let safe=false;
+  while(!safe){
+    letter.x=Math.random()*(canvas.width-140)+40;
+    letter.y=Math.random()*(canvas.height-260)+120;
+    const dx=(player.x)-(letter.x+60);
+    const dy=(player.y)-(letter.y+60);
+    safe=Math.hypot(dx,dy)>180;
+  }
+  setTimeout(()=>collisionEnabled=true,300);
 }
-resetInput.oninput=()=>{
-  confirmResetBtn.disabled = resetInput.value.toUpperCase() !== resetTargetWord;
-};
-confirmResetBtn.onclick=()=>{
-  localStorage.clear();
-  location.reload();
-};
 
-/* ================= GAMEPLACEHOLDER ================= */
-/* Gameplay remains exactly as your stable version.
-   Phase 2 will connect selectedMode to word lists. */
+/* ================= COLLECT ================= */
+canvas.addEventListener("click",e=>{
+  if(!collisionEnabled)return;
+  const dx=e.clientX-(letter.x+60);
+  const dy=e.clientY-(letter.y+60);
+  if(Math.hypot(dx,dy)<60) collect();
+});
 
-function startGameplay(){
-  ctx.fillStyle="#000";
+function collect(){
+  if(collecting)return;
+  collecting=true;collisionEnabled=false;
+  speak(letter.char);
+  letterIndex++;
+  if(letterIndex<words[wordIndex].length){
+    setTimeout(spawn,300);
+  }else{
+    stars++;
+    document.getElementById("stars").textContent=stars;
+    setTimeout(()=>speak(words[wordIndex]),700);
+    setTimeout(()=>{
+      wordIndex=(wordIndex+1)%words.length;
+      letterIndex=0;
+      spawn();
+    },1200);
+  }
+}
+
+/* ================= DRAW ================= */
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#fff";
   ctx.font="28px Arial";
-  ctx.fillText("Gameplay starts here (Phase 2)",50,150);
+  ctx.textAlign="center";
+  let line="";
+  for(let i=0;i<words[wordIndex].length;i++){
+    line+=i<letterIndex?words[wordIndex][i]+" ":"• ";
+  }
+  ctx.fillText(line.trim(),canvas.width/2,100);
+
+  letter.float+=.03;
+  letter.x+=letter.vx;
+  letter.y+=letter.vy+Math.sin(letter.float)*.3;
+  if(letter.x<0||letter.x>canvas.width-120)letter.vx*=-1;
+  if(letter.y<120||letter.y>canvas.height-120)letter.vy*=-1;
+
+  ctx.beginPath();
+  ctx.arc(letter.x+60,letter.y+60,55,0,Math.PI*2);
+  ctx.fillStyle="#ff7043";
+  ctx.fill();
+  ctx.fillStyle="#fff";
+  ctx.font="bold 72px Arial";
+  ctx.fillText(letter.char,letter.x+60,letter.y+78);
+
+  ctx.font="72px Arial";
+  ctx.fillText("🐱",player.x,player.y);
+
+  if(collisionEnabled){
+    const dx=(player.x)-(letter.x+60);
+    const dy=(player.y)-(letter.y+60);
+    if(Math.hypot(dx,dy)<90) collect();
+  }
+  requestAnimationFrame(draw);
 }
 </script>
 
