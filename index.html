@@ -8,25 +8,33 @@
 body{margin:0;overflow:hidden;font-family:Arial,sans-serif;background:#cfe9ff}
 canvas{display:block;touch-action:none}
 
+/* TOP BAR */
 .topbar{
-  position:fixed;top:0;left:0;right:0;height:70px;
-  background:#ffffffee;display:flex;align-items:center;
-  justify-content:space-between;padding:0 12px;z-index:10
+  position:fixed;top:0;left:0;right:0;
+  background:#ffffffee;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  padding:6px 8px;
+  z-index:10
 }
+.topbar .group{display:flex;flex-wrap:wrap;align-items:center}
 .btn{
   background:#4caf50;color:#fff;border:none;
-  border-radius:14px;padding:10px 14px;font-size:16px;margin:4px
+  border-radius:14px;padding:8px 12px;
+  font-size:15px;margin:4px
 }
-.btn-outline{
-  background:#fff;color:#333;border:2px solid #4caf50
-}
+.btn-outline{background:#fff;color:#333;border:2px solid #4caf50}
+
+/* OVERLAYS */
 .overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
   display:flex;align-items:center;justify-content:center;z-index:20
 }
 .card{
   background:#fff;border-radius:24px;
-  padding:24px;width:92%;max-width:420px;text-align:center
+  padding:22px;width:92%;max-width:420px;text-align:center
 }
 input{
   width:90%;padding:10px;font-size:18px;
@@ -34,8 +42,10 @@ input{
   margin:8px 0;text-align:center
 }
 .hidden{display:none}
+
 .stickers{
-  display:grid;grid-template-columns:repeat(2,1fr);
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
   gap:12px;margin:12px 0
 }
 </style>
@@ -43,11 +53,15 @@ input{
 
 <body>
 
-<!-- TOP BAR (GAME) -->
+<!-- GAME TOP BAR -->
 <div class="topbar hidden" id="gameTop">
-  <div>👤 <span id="playerName"></span></div>
-  <div>⭐ <span id="stars">0</span></div>
-  <div>
+  <div class="group">
+    👤 <span id="playerName"></span>
+  </div>
+  <div class="group">
+    ⭐ <span id="stars">0</span>
+  </div>
+  <div class="group">
     <button class="btn btn-outline" onclick="showHome()">🏠 Home</button>
     <button class="btn btn-outline" onclick="openStickers()">📘 Stickers</button>
     <button class="btn btn-outline" onclick="openReset()">🔄 Reset</button>
@@ -60,11 +74,22 @@ input{
 <div class="overlay" id="home">
   <div class="card">
     <h2>Spell & Learn 🐱</h2>
-    <input id="nameInput" placeholder="Enter name (optional)">
-    <button class="btn" onclick="saveName()">Save Name</button>
-    <p id="greet"></p>
+
+    <!-- PROFILE -->
+    <div id="profileEdit">
+      <input id="nameInput" placeholder="Enter name (optional)">
+      <button class="btn" onclick="saveName()">Save Name</button>
+    </div>
+
+    <div id="profileView" class="hidden">
+      <p style="font-size:18px">
+        👤 <span id="nameText"></span>
+        <span style="cursor:pointer" onclick="editName()">✏️</span>
+      </p>
+    </div>
 
     <hr>
+
     <p><b>Select category</b></p>
     <div>
       <button class="btn btn-outline" onclick="selectMode('Animals')">🐶 Animals</button>
@@ -80,7 +105,7 @@ input{
   </div>
 </div>
 
-<!-- WORD COMPLETE -->
+<!-- WORD POPUP -->
 <div class="overlay hidden" id="popup">
   <div class="card">
     <div id="popupEmoji" style="font-size:90px">🎉</div>
@@ -115,26 +140,31 @@ input{
 /* ================= DATA ================= */
 const categories={
 Animals:["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR","HORSE","SHEEP","MONKEY","ELEPHANT","DEER","FROG","FISH","BIRD","MOUSE","CAMEL"],
-Food:["APPLE","BANANA","MANGO","ORANGE","GRAPE","PEAR","PEACH","PLUM","MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE","BUTTER","SANDWICH"],
-Vehicles:["CAR","BUS","VAN","BIKE","TRAIN","TRUCK","SHIP","PLANE","SCOOTER","TRACTOR","TAXI","JEEP","METRO","BOAT","HELICOPTER","AMBULANCE","POLICE","FIRETRUCK","CYCLE","AUTO"],
-Nature:["SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS","RIVER","HILL","MOUNTAIN","BEACH","FOREST","WIND","STORM","SKY","SOIL","ROCK"],
-Home:["BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED","DOOR","KEY","PHONE","CLOCK","SHOE","SPOON","PLATE","BOTTLE","PILLOW","LAMP"]
+Food:["APPLE","BANANA","MANGO","ORANGE","GRAPE","MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE","BUTTER","SANDWICH"],
+Vehicles:["CAR","BUS","VAN","BIKE","TRAIN","TRUCK","SHIP","PLANE","SCOOTER","TRACTOR","TAXI","JEEP","BOAT","HELICOPTER"],
+Nature:["SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS","RIVER","HILL","MOUNTAIN"],
+Home:["BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED","DOOR","KEY","PHONE","CLOCK"]
 };
 
-const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",LION:"🦁",
-TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",SHEEP:"🐑",MONKEY:"🐵",ELEPHANT:"🐘",DEER:"🦌",
-FROG:"🐸",FISH:"🐟",BIRD:"🐦",MOUSE:"🐭",CAMEL:"🐪",APPLE:"🍎",BANANA:"🍌",
-MANGO:"🥭",ORANGE:"🍊",GRAPE:"🍇",MILK:"🥛",BREAD:"🍞",EGG:"🥚",CAKE:"🍰",
-CAR:"🚗",BUS:"🚌",TRAIN:"🚆",PLANE:"✈️",BOAT:"🚤",SUN:"☀️",MOON:"🌙",
-STAR:"⭐",TREE:"🌳",FLOWER:"🌸"};
+const categoryEmoji={
+Animals:"🐶",Food:"🍎",Vehicles:"🚗",Nature:"🌿",Home:"🏠",Random:"🎲"
+};
+
+const emojiMap={
+CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",LION:"🦁",
+TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",ELEPHANT:"🐘",FROG:"🐸",FISH:"🐟",
+BIRD:"🐦",APPLE:"🍎",BANANA:"🍌",MANGO:"🥭",ORANGE:"🍊",MILK:"🥛",
+CAR:"🚗",BUS:"🚌",TRAIN:"🚆",PLANE:"✈️",SUN:"☀️",MOON:"🌙",
+STAR:"⭐",TREE:"🌳",FLOWER:"🌸"
+};
 
 const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
-const STORE="spellLearnPhase2";
+const STORE="spellLearnPhase21";
 
 /* ================= STATE ================= */
 let profile={name:"",stars:0,mode:"Animals"};
 let words=[],wordIndex=0,letterIndex=0;
-let collecting=false,collision=true;
+let collecting=false,collision=true,hideLetter=false;
 
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
@@ -147,7 +177,7 @@ function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
 resize();addEventListener("resize",resize);
 
 loadProfile();
-updateHome();
+updateHomeUI();
 
 /* ================= PROFILE ================= */
 function loadProfile(){
@@ -162,27 +192,33 @@ function saveProfile(){
 function saveName(){
   const v=nameInput.value.trim();
   if(v) profile.name=v.substring(0,10);
-  saveProfile();updateHome();
+  saveProfile();updateHomeUI();
 }
-function selectMode(m){
-  profile.mode=m;saveProfile();updateHome();
+function editName(){
+  profileEdit.classList.remove("hidden");
+  profileView.classList.add("hidden");
 }
-function updateHome(){
-  greet.textContent=profile.name?`Hi, ${profile.name}!`:"";
+function updateHomeUI(){
+  if(profile.name){
+    nameText.textContent=profile.name;
+    profileEdit.classList.add("hidden");
+    profileView.classList.remove("hidden");
+  }
   nameInput.value=profile.name||"";
   modeText.textContent="Selected: "+profile.mode;
 }
 
 /* ================= NAV ================= */
+function selectMode(m){
+  profile.mode=m;saveProfile();updateHomeUI();
+}
 function startGame(){
   home.style.display="none";
   gameTop.classList.remove("hidden");
   canvas.classList.remove("hidden");
   playerName.textContent=profile.name||"Player";
   stars.textContent=profile.stars;
-  setupWords();
-  spawn();
-  draw();
+  setupWords();spawn();draw();
 }
 function showHome(){
   home.style.display="flex";
@@ -209,7 +245,7 @@ function speak(t){
 
 /* ================= GAME ================= */
 function spawn(){
-  collecting=false;collision=false;
+  collecting=false;collision=false;hideLetter=false;
   letter.char=words[wordIndex][letterIndex];
   let safe=false;
   while(!safe){
@@ -234,17 +270,21 @@ function collect(){
   collecting=true;collision=false;
   speak(letter.char);
   letterIndex++;
+
   if(letterIndex<words[wordIndex].length){
     setTimeout(spawn,300);
   }else{
+    hideLetter=true;
     profile.stars++;saveProfile();
     stars.textContent=profile.stars;
-    setTimeout(()=>speak(words[wordIndex]),700);
+
+    setTimeout(()=>speak(words[wordIndex]),400);
     setTimeout(()=>{
-      popupEmoji.textContent=emojis[words[wordIndex]]||"🎉";
-      popupWord.textContent=words[wordIndex];
+      const w=words[wordIndex];
+      popupEmoji.textContent=emojiMap[w]||categoryEmoji[profile.mode]||"🎉";
+      popupWord.textContent=w;
       popup.classList.remove("hidden");
-    },1200);
+    },700);
   }
 }
 
@@ -297,17 +337,19 @@ function draw(){
   }
   ctx.fillText(line.trim(),canvas.width/2,110);
 
-  letter.float+=.03;
-  letter.x+=letter.vx;
-  letter.y+=letter.vy+Math.sin(letter.float)*.3;
-  if(letter.x<0||letter.x>canvas.width-120)letter.vx*=-1;
-  if(letter.y<120||letter.y>canvas.height-120)letter.vy*=-1;
+  if(!hideLetter){
+    letter.float+=.03;
+    letter.x+=letter.vx;
+    letter.y+=letter.vy+Math.sin(letter.float)*.3;
+    if(letter.x<0||letter.x>canvas.width-120)letter.vx*=-1;
+    if(letter.y<120||letter.y>canvas.height-120)letter.vy*=-1;
 
-  ctx.beginPath();
-  ctx.arc(letter.x+60,letter.y+60,55,0,Math.PI*2);
-  ctx.fillStyle="#ff7043";ctx.fill();
-  ctx.fillStyle="#fff";ctx.font="bold 72px Arial";
-  ctx.fillText(letter.char,letter.x+60,letter.y+78);
+    ctx.beginPath();
+    ctx.arc(letter.x+60,letter.y+60,55,0,Math.PI*2);
+    ctx.fillStyle="#ff7043";ctx.fill();
+    ctx.fillStyle="#fff";ctx.font="bold 72px Arial";
+    ctx.fillText(letter.char,letter.x+60,letter.y+78);
+  }
 
   ctx.font="72px Arial";
   ctx.fillText("🐱",player.x,player.y);
