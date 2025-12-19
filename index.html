@@ -7,6 +7,7 @@
 <style>
 body{margin:0;overflow:hidden;font-family:Arial,sans-serif;background:#cfe9ff}
 canvas{display:block;touch-action:none}
+
 .topbar{
   position:fixed;top:0;left:0;right:0;height:80px;
   background:#ffffffee;display:flex;align-items:center;
@@ -24,14 +25,24 @@ canvas{display:block;touch-action:none}
   background:#fff;border-radius:24px;
   padding:26px;width:85%;max-width:360px;text-align:center
 }
+.stickers{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  margin:12px 0;
+}
 </style>
 </head>
 
 <body>
 
+<!-- TOP BAR -->
 <div class="topbar">
   <div style="font-size:20px">⭐ <span id="stars">0</span></div>
-  <button class="btn" onclick="resetGame()">🔄 Reset</button>
+  <div>
+    <button class="btn" onclick="openStickers()">📘 Stickers</button>
+    <button class="btn" onclick="resetGame()">🔄 Reset</button>
+  </div>
 </div>
 
 <canvas id="c"></canvas>
@@ -41,7 +52,8 @@ canvas{display:block;touch-action:none}
   <div class="card">
     <div style="font-size:52px">🐱</div>
     <p style="font-size:20px;line-height:1.5">
-      Move the cat or tap the letter bubble to spell the word
+      Move the cat or tap the letter bubble<br>
+      to spell the word
     </p>
     <button class="btn" onclick="instruction.style.display='none'">OK</button>
   </div>
@@ -53,6 +65,18 @@ canvas{display:block;touch-action:none}
     <div id="popupEmoji" style="font-size:96px">🎉</div>
     <div id="popupWord" style="font-size:36px;font-weight:bold;margin:10px"></div>
     <button class="btn" id="popupBtn">OK</button>
+  </div>
+</div>
+
+<!-- STICKER BOOK -->
+<div class="overlay" id="stickerPanel" style="display:none">
+  <div class="card">
+    <h2>Sticker Book</h2>
+    <p style="font-size:16px">
+      ⭐ Earn 100 stars to unlock each sticker
+    </p>
+    <div class="stickers" id="stickerGrid"></div>
+    <button class="btn" onclick="stickerPanel.style.display='none'">Close</button>
   </div>
 </div>
 
@@ -70,7 +94,10 @@ const words=["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","BEAR","APPLE","
 const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
 GOAT:"🐐",LION:"🦁",BEAR:"🐻",APPLE:"🍎",CAR:"🚗",BUS:"🚌",SUN:"☀️",MOON:"🌙",STAR:"⭐"};
 
-const STORE="spellLearnStableV2";
+const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
+const STARS_PER_STICKER = 100;
+
+const STORE="spellLearnStableV3";
 
 /* ================= STATE ================= */
 let wordIndex=0,letterIndex=0,stars=0;
@@ -97,10 +124,10 @@ load();
 document.getElementById("stars").textContent=stars;
 
 /* ================= SPEECH ================= */
-function speak(text){
+function speak(t){
   if(!speechSynthesis)return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
+  const u=new SpeechSynthesisUtterance(t);
   u.rate=.6;
   speechSynthesis.speak(u);
 }
@@ -129,19 +156,16 @@ canvas.addEventListener("click",e=>{
 function spawn(){
   collecting=false;
   collisionEnabled=false;
-
   letter.char=words[wordIndex][letterIndex];
 
   let safe=false;
   while(!safe){
     letter.x=Math.random()*(canvas.width-140)+40;
     letter.y=Math.random()*(canvas.height-260)+120;
-
     const dx=(player.x)-(letter.x+60);
     const dy=(player.y)-(letter.y+60);
-    safe=Math.hypot(dx,dy)>180; // minimum safe distance
+    safe=Math.hypot(dx,dy)>180;
   }
-
   setTimeout(()=>collisionEnabled=true,300);
 }
 spawn();
@@ -152,20 +176,19 @@ function collect(){
   collecting=true;
   collisionEnabled=false;
 
-  // Speak LETTER
   speak(letter.char);
-  stars++;
-  document.getElementById("stars").textContent=stars;
   letterIndex++;
   save();
 
   if(letterIndex < words[wordIndex].length){
     setTimeout(spawn,300);
   }else{
-    // Speak WORD after letter finishes
-    setTimeout(()=>{
-      speak(words[wordIndex]);
-    },700);
+    // ⭐ ONE STAR PER WORD
+    stars++;
+    document.getElementById("stars").textContent=stars;
+    save();
+
+    setTimeout(()=>speak(words[wordIndex]),700);
 
     setTimeout(()=>{
       popupEmoji.textContent=emojis[words[wordIndex]]||"🎉";
@@ -182,6 +205,26 @@ popupBtn.onclick=()=>{
   spawn();
   save();
 };
+
+/* ================= STICKERS ================= */
+function openStickers(){
+  stickerPanel.style.display="flex";
+  renderStickers();
+}
+
+function renderStickers(){
+  stickerGrid.innerHTML="";
+  const unlocked=Math.floor(stars / STARS_PER_STICKER);
+
+  stickers.forEach((src,i)=>{
+    const img=document.createElement("img");
+    img.src=src;
+    img.style.width="100%";
+    img.style.opacity=i<unlocked?1:0.15;
+    img.style.filter=i<unlocked?"none":"grayscale(100%)";
+    stickerGrid.appendChild(img);
+  });
+}
 
 /* ================= DRAW ================= */
 function draw(){
@@ -218,7 +261,7 @@ function draw(){
   ctx.font="72px Arial";
   ctx.fillText("🐱",player.x,player.y);
 
-  // Collision (only when enabled)
+  // Collision
   if(collisionEnabled){
     const dx=(player.x)-(letter.x+60);
     const dy=(player.y)-(letter.y+60);
