@@ -15,11 +15,10 @@ canvas{display:block;touch-action:none}
 }
 .btn{
   background:#4caf50;color:#fff;border:none;
-  border-radius:14px;padding:10px 14px;font-size:16px;
-  margin:4px;
+  border-radius:14px;padding:10px 14px;font-size:16px;margin:4px
 }
 .btn-outline{
-  background:#fff;color:#333;border:2px solid #4caf50;
+  background:#fff;color:#333;border:2px solid #4caf50
 }
 .overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
@@ -27,27 +26,32 @@ canvas{display:block;touch-action:none}
 }
 .card{
   background:#fff;border-radius:24px;
-  padding:24px;width:90%;max-width:380px;text-align:center
+  padding:24px;width:92%;max-width:420px;text-align:center
 }
 input{
-  width:90%;
-  padding:10px;
-  font-size:18px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  margin:10px 0;
-  text-align:center;
+  width:90%;padding:10px;font-size:18px;
+  border-radius:10px;border:1px solid #ccc;
+  margin:8px 0;text-align:center
 }
 .hidden{display:none}
+.stickers{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:12px;margin:12px 0
+}
 </style>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar hidden" id="gameTopbar">
-  <div style="font-size:18px">⭐ <span id="stars">0</span></div>
-  <button class="btn" onclick="location.reload()">🏠 Home</button>
+<!-- TOP BAR (GAME) -->
+<div class="topbar hidden" id="gameTop">
+  <div>👤 <span id="playerName"></span></div>
+  <div>⭐ <span id="stars">0</span></div>
+  <div>
+    <button class="btn btn-outline" onclick="showHome()">🏠 Home</button>
+    <button class="btn btn-outline" onclick="openStickers()">📘 Stickers</button>
+    <button class="btn btn-outline" onclick="openReset()">🔄 Reset</button>
+  </div>
 </div>
 
 <canvas id="c" class="hidden"></canvas>
@@ -59,53 +63,140 @@ input{
     <input id="nameInput" placeholder="Enter name (optional)">
     <button class="btn" onclick="saveName()">Save Name</button>
     <p id="greet"></p>
+
     <hr>
-    <p>Select mode (temporary)</p>
-    <button class="btn btn-outline" onclick="selectMode('Any')">Any</button>
+    <p><b>Select category</b></p>
+    <div>
+      <button class="btn btn-outline" onclick="selectMode('Animals')">🐶 Animals</button>
+      <button class="btn btn-outline" onclick="selectMode('Food')">🍎 Food</button>
+      <button class="btn btn-outline" onclick="selectMode('Vehicles')">🚗 Vehicles</button>
+      <button class="btn btn-outline" onclick="selectMode('Nature')">🌿 Nature</button>
+      <button class="btn btn-outline" onclick="selectMode('Home')">🏠 Home</button>
+      <button class="btn btn-outline" onclick="selectMode('Random')">🎲 Random</button>
+    </div>
+
     <p id="modeText"></p>
     <button class="btn" style="font-size:20px" onclick="startGame()">▶️ Play</button>
   </div>
 </div>
 
+<!-- WORD COMPLETE -->
+<div class="overlay hidden" id="popup">
+  <div class="card">
+    <div id="popupEmoji" style="font-size:90px">🎉</div>
+    <div id="popupWord" style="font-size:36px;font-weight:bold"></div>
+    <button class="btn" onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<!-- STICKERS -->
+<div class="overlay hidden" id="stickerPanel">
+  <div class="card">
+    <h3>Sticker Book</h3>
+    <p>⭐ 100 stars = 1 sticker</p>
+    <div class="stickers" id="stickerGrid"></div>
+    <button class="btn" onclick="stickerPanel.classList.add('hidden')">Close</button>
+  </div>
+</div>
+
+<!-- RESET -->
+<div class="overlay hidden" id="resetPanel">
+  <div class="card">
+    <h3>Reset Progress</h3>
+    <p>Type this word to confirm:</p>
+    <div id="resetWord" style="font-size:28px;font-weight:bold"></div>
+    <input id="resetInput">
+    <button class="btn" onclick="resetPanel.classList.add('hidden')">Cancel</button>
+    <button class="btn" id="confirmReset" disabled>Confirm</button>
+  </div>
+</div>
+
 <script>
-/* ================= CANVAS ================= */
+/* ================= DATA ================= */
+const categories={
+Animals:["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR","HORSE","SHEEP","MONKEY","ELEPHANT","DEER","FROG","FISH","BIRD","MOUSE","CAMEL"],
+Food:["APPLE","BANANA","MANGO","ORANGE","GRAPE","PEAR","PEACH","PLUM","MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE","BUTTER","SANDWICH"],
+Vehicles:["CAR","BUS","VAN","BIKE","TRAIN","TRUCK","SHIP","PLANE","SCOOTER","TRACTOR","TAXI","JEEP","METRO","BOAT","HELICOPTER","AMBULANCE","POLICE","FIRETRUCK","CYCLE","AUTO"],
+Nature:["SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS","RIVER","HILL","MOUNTAIN","BEACH","FOREST","WIND","STORM","SKY","SOIL","ROCK"],
+Home:["BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED","DOOR","KEY","PHONE","CLOCK","SHOE","SPOON","PLATE","BOTTLE","PILLOW","LAMP"]
+};
+
+const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",LION:"🦁",
+TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",SHEEP:"🐑",MONKEY:"🐵",ELEPHANT:"🐘",DEER:"🦌",
+FROG:"🐸",FISH:"🐟",BIRD:"🐦",MOUSE:"🐭",CAMEL:"🐪",APPLE:"🍎",BANANA:"🍌",
+MANGO:"🥭",ORANGE:"🍊",GRAPE:"🍇",MILK:"🥛",BREAD:"🍞",EGG:"🥚",CAKE:"🍰",
+CAR:"🚗",BUS:"🚌",TRAIN:"🚆",PLANE:"✈️",BOAT:"🚤",SUN:"☀️",MOON:"🌙",
+STAR:"⭐",TREE:"🌳",FLOWER:"🌸"};
+
+const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
+const STORE="spellLearnPhase2";
+
+/* ================= STATE ================= */
+let profile={name:"",stars:0,mode:"Animals"};
+let words=[],wordIndex=0,letterIndex=0;
+let collecting=false,collision=true;
+
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
+const player={x:200,y:300};
+const letter={x:100,y:200,char:"",vx:.6,vy:.5,float:0};
+const bg=new Image();bg.src="bg.png";
+
+/* ================= INIT ================= */
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
 resize();addEventListener("resize",resize);
 
-/* ================= STATE ================= */
-const STORE="spellLearnBridge";
-let name="",mode="Any";
-let stars=0;
-let wordIndex=0,letterIndex=0;
-let collecting=false,collisionEnabled=true;
+loadProfile();
+updateHome();
 
-const words=["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","BEAR","APPLE"];
-const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
-GOAT:"🐐",LION:"🦁",BEAR:"🐻",APPLE:"🍎"};
-
-const player={x:200,y:300};
-const letter={x:100,y:200,char:"",vx:.6,vy:.5,float:0};
-
-/* ================= HOME ================= */
+/* ================= PROFILE ================= */
+function loadProfile(){
+  try{
+    const d=JSON.parse(localStorage.getItem(STORE));
+    if(d) profile=d;
+  }catch{}
+}
+function saveProfile(){
+  localStorage.setItem(STORE,JSON.stringify(profile));
+}
 function saveName(){
-  name=document.getElementById("nameInput").value.trim();
-  localStorage.setItem(STORE,JSON.stringify({name,mode,stars}));
-  document.getElementById("greet").textContent=name?`Hi ${name}!`:"";
+  const v=nameInput.value.trim();
+  if(v) profile.name=v.substring(0,10);
+  saveProfile();updateHome();
 }
 function selectMode(m){
-  mode=m;
-  document.getElementById("modeText").textContent="Selected: "+m;
+  profile.mode=m;saveProfile();updateHome();
+}
+function updateHome(){
+  greet.textContent=profile.name?`Hi, ${profile.name}!`:"";
+  nameInput.value=profile.name||"";
+  modeText.textContent="Selected: "+profile.mode;
 }
 
-/* ================= GAME ================= */
+/* ================= NAV ================= */
 function startGame(){
-  document.getElementById("home").style.display="none";
-  document.getElementById("gameTopbar").classList.remove("hidden");
+  home.style.display="none";
+  gameTop.classList.remove("hidden");
   canvas.classList.remove("hidden");
+  playerName.textContent=profile.name||"Player";
+  stars.textContent=profile.stars;
+  setupWords();
   spawn();
   draw();
+}
+function showHome(){
+  home.style.display="flex";
+}
+
+/* ================= WORD SET ================= */
+function setupWords(){
+  if(profile.mode==="Random"){
+    words=[].concat(...Object.values(categories));
+    words.sort(()=>Math.random()-.5);
+  }else{
+    words=[...categories[profile.mode]];
+  }
+  wordIndex=0;letterIndex=0;
 }
 
 /* ================= SPEECH ================= */
@@ -113,28 +204,26 @@ function speak(t){
   if(!speechSynthesis)return;
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t);
-  u.rate=.6;
-  speechSynthesis.speak(u);
+  u.rate=.6;speechSynthesis.speak(u);
 }
 
-/* ================= SPAWN ================= */
+/* ================= GAME ================= */
 function spawn(){
-  collecting=false;collisionEnabled=false;
+  collecting=false;collision=false;
   letter.char=words[wordIndex][letterIndex];
   let safe=false;
   while(!safe){
     letter.x=Math.random()*(canvas.width-140)+40;
     letter.y=Math.random()*(canvas.height-260)+120;
-    const dx=(player.x)-(letter.x+60);
-    const dy=(player.y)-(letter.y+60);
+    const dx=player.x-(letter.x+60);
+    const dy=player.y-(letter.y+60);
     safe=Math.hypot(dx,dy)>180;
   }
-  setTimeout(()=>collisionEnabled=true,300);
+  setTimeout(()=>collision=true,300);
 }
 
-/* ================= COLLECT ================= */
 canvas.addEventListener("click",e=>{
-  if(!collisionEnabled)return;
+  if(!collision)return;
   const dx=e.clientX-(letter.x+60);
   const dy=e.clientY-(letter.y+60);
   if(Math.hypot(dx,dy)<60) collect();
@@ -142,34 +231,71 @@ canvas.addEventListener("click",e=>{
 
 function collect(){
   if(collecting)return;
-  collecting=true;collisionEnabled=false;
+  collecting=true;collision=false;
   speak(letter.char);
   letterIndex++;
   if(letterIndex<words[wordIndex].length){
     setTimeout(spawn,300);
   }else{
-    stars++;
-    document.getElementById("stars").textContent=stars;
+    profile.stars++;saveProfile();
+    stars.textContent=profile.stars;
     setTimeout(()=>speak(words[wordIndex]),700);
     setTimeout(()=>{
-      wordIndex=(wordIndex+1)%words.length;
-      letterIndex=0;
-      spawn();
+      popupEmoji.textContent=emojis[words[wordIndex]]||"🎉";
+      popupWord.textContent=words[wordIndex];
+      popup.classList.remove("hidden");
     },1200);
   }
 }
 
+function closePopup(){
+  popup.classList.add("hidden");
+  wordIndex=(wordIndex+1)%words.length;
+  letterIndex=0;
+  spawn();
+}
+
+/* ================= STICKERS ================= */
+function openStickers(){
+  stickerPanel.classList.remove("hidden");
+  stickerGrid.innerHTML="";
+  const unlocked=Math.floor(profile.stars/100);
+  stickers.forEach((s,i)=>{
+    const img=document.createElement("img");
+    img.src=s;img.style.width="100%";
+    img.style.opacity=i<unlocked?1:.15;
+    img.style.filter=i<unlocked?"none":"grayscale(100%)";
+    stickerGrid.appendChild(img);
+  });
+}
+
+/* ================= RESET ================= */
+function openReset(){
+  resetWord.textContent=words[Math.floor(Math.random()*words.length)];
+  resetInput.value="";
+  confirmReset.disabled=true;
+  resetPanel.classList.remove("hidden");
+}
+resetInput.oninput=()=>{
+  confirmReset.disabled=resetInput.value.toUpperCase()!==resetWord.textContent;
+};
+confirmReset.onclick=()=>{
+  localStorage.removeItem(STORE);
+  location.reload();
+};
+
 /* ================= DRAW ================= */
 function draw(){
+  bg.complete?ctx.drawImage(bg,0,0,canvas.width,canvas.height):
   ctx.clearRect(0,0,canvas.width,canvas.height);
+
   ctx.fillStyle="#fff";
-  ctx.font="28px Arial";
-  ctx.textAlign="center";
+  ctx.font="28px Arial";ctx.textAlign="center";
   let line="";
   for(let i=0;i<words[wordIndex].length;i++){
     line+=i<letterIndex?words[wordIndex][i]+" ":"• ";
   }
-  ctx.fillText(line.trim(),canvas.width/2,100);
+  ctx.fillText(line.trim(),canvas.width/2,110);
 
   letter.float+=.03;
   letter.x+=letter.vx;
@@ -179,18 +305,16 @@ function draw(){
 
   ctx.beginPath();
   ctx.arc(letter.x+60,letter.y+60,55,0,Math.PI*2);
-  ctx.fillStyle="#ff7043";
-  ctx.fill();
-  ctx.fillStyle="#fff";
-  ctx.font="bold 72px Arial";
+  ctx.fillStyle="#ff7043";ctx.fill();
+  ctx.fillStyle="#fff";ctx.font="bold 72px Arial";
   ctx.fillText(letter.char,letter.x+60,letter.y+78);
 
   ctx.font="72px Arial";
   ctx.fillText("🐱",player.x,player.y);
 
-  if(collisionEnabled){
-    const dx=(player.x)-(letter.x+60);
-    const dy=(player.y)-(letter.y+60);
+  if(collision){
+    const dx=player.x-(letter.x+60);
+    const dy=player.y-(letter.y+60);
     if(Math.hypot(dx,dy)<90) collect();
   }
   requestAnimationFrame(draw);
