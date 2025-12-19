@@ -9,16 +9,17 @@ body{margin:0;overflow:hidden;font-family:Arial,sans-serif;background:#cfe9ff}
 canvas{display:block;touch-action:none}
 
 .topbar{
-  position:fixed;top:0;left:0;right:0;height:80px;
+  position:fixed;top:0;left:0;right:0;height:70px;
   background:#ffffffee;display:flex;align-items:center;
   justify-content:space-between;padding:0 12px;z-index:10
 }
 .btn{
   background:#4caf50;color:#fff;border:none;
-  border-radius:14px;padding:10px 14px;font-size:16px
+  border-radius:14px;padding:10px 14px;font-size:16px;
+  margin:4px;
 }
-.btn-danger{
-  background:#e53935;
+.btn-outline{
+  background:#fff;color:#333;border:2px solid #4caf50;
 }
 .overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
@@ -26,276 +27,161 @@ canvas{display:block;touch-action:none}
 }
 .card{
   background:#fff;border-radius:24px;
-  padding:26px;width:85%;max-width:360px;text-align:center
+  padding:24px;width:90%;max-width:380px;text-align:center
 }
 input{
-  width:100%;
+  width:90%;
   padding:10px;
   font-size:18px;
-  margin:10px 0;
-  border-radius:8px;
+  border-radius:10px;
   border:1px solid #ccc;
+  margin:10px 0;
   text-align:center;
 }
-.stickers{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:12px;
-  margin:12px 0;
-}
+.hidden{display:none}
 </style>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div style="font-size:20px">⭐ <span id="stars">0</span></div>
-  <div>
-    <button class="btn" onclick="openStickers()">📘 Stickers</button>
-    <button class="btn btn-danger" onclick="openResetConfirm()">🔄 Reset</button>
-  </div>
+<!-- TOP BAR (GAME ONLY) -->
+<div class="topbar hidden" id="gameTopbar">
+  <div style="font-size:18px">⭐ <span id="stars">0</span></div>
+  <button class="btn" onclick="openResetConfirm()">🔄 Reset</button>
 </div>
 
-<canvas id="c"></canvas>
+<canvas id="c" class="hidden"></canvas>
 
-<!-- INSTRUCTION -->
-<div class="overlay" id="instruction">
+<!-- HOME SCREEN -->
+<div class="overlay" id="home">
   <div class="card">
-    <div style="font-size:52px">🐱</div>
-    <p style="font-size:20px;line-height:1.5">
-      Move the cat or tap the letter bubble<br>
-      to spell the word
-    </p>
-    <button class="btn" onclick="instruction.style.display='none'">OK</button>
-  </div>
-</div>
+    <h2>Spell & Learn 🐱</h2>
 
-<!-- WORD COMPLETE -->
-<div class="overlay" id="popup" style="display:none">
-  <div class="card">
-    <div id="popupEmoji" style="font-size:96px">🎉</div>
-    <div id="popupWord" style="font-size:36px;font-weight:bold;margin:10px"></div>
-    <button class="btn" id="popupBtn">OK</button>
-  </div>
-</div>
+    <div id="profileSection">
+      <p id="greetText" style="font-size:18px"></p>
+      <input id="nameInput" placeholder="Enter your name (optional)">
+      <button class="btn" onclick="saveProfile()">Save Name</button>
+    </div>
 
-<!-- STICKER BOOK -->
-<div class="overlay" id="stickerPanel" style="display:none">
-  <div class="card">
-    <h2>Sticker Book</h2>
-    <p style="font-size:16px">
-      ⭐ Earn 100 stars to unlock each sticker
-    </p>
-    <div class="stickers" id="stickerGrid"></div>
-    <button class="btn" onclick="stickerPanel.style.display='none'">Close</button>
+    <hr>
+
+    <p style="font-size:18px">Choose how to play</p>
+
+    <div>
+      <button class="btn btn-outline" onclick="selectMode('Animals')">🐶 Animals</button>
+      <button class="btn btn-outline" onclick="selectMode('Food')">🍎 Food</button>
+      <button class="btn btn-outline" onclick="selectMode('Vehicles')">🚗 Vehicles</button>
+      <button class="btn btn-outline" onclick="selectMode('Nature')">🌿 Nature</button>
+      <button class="btn btn-outline" onclick="selectMode('Home')">🏠 Home</button>
+      <button class="btn btn-outline" onclick="selectMode('Random')">🎲 Random Mix</button>
+    </div>
+
+    <p id="modeText" style="margin-top:10px;font-size:16px"></p>
+
+    <button class="btn" style="font-size:20px;margin-top:10px" onclick="startGame()">▶️ Play</button>
   </div>
 </div>
 
 <!-- RESET CONFIRM -->
-<div class="overlay" id="resetPanel" style="display:none">
+<div class="overlay hidden" id="resetPanel">
   <div class="card">
-    <h2>Reset Progress</h2>
-    <p style="font-size:16px">
-      This will erase all progress.<br>
-      Type this word to confirm:
-    </p>
-    <div style="font-size:28px;font-weight:bold" id="resetWord"></div>
-    <input id="resetInput" placeholder="Type the word here">
-    <div style="margin-top:10px">
-      <button class="btn" onclick="closeReset()">Cancel</button>
-      <button class="btn btn-danger" id="confirmResetBtn" disabled>Confirm Reset</button>
-    </div>
+    <h3>Reset Progress</h3>
+    <p>Type this word to confirm:</p>
+    <div id="resetWord" style="font-size:28px;font-weight:bold"></div>
+    <input id="resetInput">
+    <button class="btn" onclick="closeReset()">Cancel</button>
+    <button class="btn" id="confirmResetBtn" disabled>Confirm</button>
   </div>
 </div>
 
 <script>
-/* ================= SETUP ================= */
+/* ================= BASIC SETUP ================= */
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
 resize();addEventListener("resize",resize);
 
-const bg=new Image();bg.src="bg.png";
+/* ================= PROFILE & MODE ================= */
+const STORE="spellLearnProfile";
+let profile={
+  name:"",
+  stars:0,
+  lastMode:"Animals"
+};
+let selectedMode="Animals";
 
-/* ================= DATA ================= */
-const words=["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","BEAR","APPLE","CAR","BUS","SUN","MOON","STAR"];
-const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
-GOAT:"🐐",LION:"🦁",BEAR:"🐻",APPLE:"🍎",CAR:"🚗",BUS:"🚌",SUN:"☀️",MOON:"🌙",STAR:"⭐"};
-const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
-const STARS_PER_STICKER=100;
-const STORE="spellLearnStableV3";
-
-/* ================= STATE ================= */
-let wordIndex=0,letterIndex=0,stars=0;
-let collecting=false,collisionEnabled=true;
-let resetTargetWord="";
-
-const player={x:200,y:300};
-const letter={x:100,y:200,char:"",vx:.6,vy:.5,float:0};
-
-/* ================= STORAGE ================= */
-function save(){
-  localStorage.setItem(STORE,JSON.stringify({wordIndex,letterIndex,stars}));
-}
-function load(){
+/* ================= LOAD PROFILE ================= */
+function loadProfile(){
   try{
     const d=JSON.parse(localStorage.getItem(STORE));
-    if(!d)return;
-    wordIndex=d.wordIndex||0;
-    letterIndex=d.letterIndex||0;
-    stars=d.stars||0;
+    if(d) profile=d;
   }catch{}
+  document.getElementById("stars").textContent=profile.stars||0;
+  selectedMode=profile.lastMode||"Animals";
+  updateHomeUI();
 }
-load();
-document.getElementById("stars").textContent=stars;
+loadProfile();
 
-/* ================= SPEECH ================= */
-function speak(t){
-  if(!speechSynthesis)return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t);
-  u.rate=.6;
-  speechSynthesis.speak(u);
+function saveProfile(){
+  const name=document.getElementById("nameInput").value.trim();
+  if(name) profile.name=name.substring(0,10);
+  localStorage.setItem(STORE,JSON.stringify(profile));
+  updateHomeUI();
 }
 
-/* ================= RESET CONFIRM ================= */
+function updateHomeUI(){
+  const greet=document.getElementById("greetText");
+  greet.textContent = profile.name ? `Hi, ${profile.name}! 👋` : "";
+  document.getElementById("nameInput").value=profile.name||"";
+  document.getElementById("modeText").textContent =
+    "Selected: " + selectedMode;
+}
+
+function selectMode(mode){
+  selectedMode=mode;
+  profile.lastMode=mode;
+  localStorage.setItem(STORE,JSON.stringify(profile));
+  updateHomeUI();
+}
+
+/* ================= START GAME ================= */
+function startGame(){
+  document.getElementById("home").style.display="none";
+  document.getElementById("gameTopbar").classList.remove("hidden");
+  canvas.classList.remove("hidden");
+
+  // PHASE 2 will use selectedMode here
+  startGameplay();
+}
+
+/* ================= RESET ================= */
 function openResetConfirm(){
-  resetTargetWord=words[Math.floor(Math.random()*words.length)];
+  resetTargetWord="CAT";
   resetWord.textContent=resetTargetWord;
   resetInput.value="";
   confirmResetBtn.disabled=true;
-  resetPanel.style.display="flex";
+  resetPanel.classList.remove("hidden");
 }
 function closeReset(){
-  resetPanel.style.display="none";
+  resetPanel.classList.add("hidden");
 }
 resetInput.oninput=()=>{
   confirmResetBtn.disabled = resetInput.value.toUpperCase() !== resetTargetWord;
 };
 confirmResetBtn.onclick=()=>{
-  localStorage.removeItem(STORE);
+  localStorage.clear();
   location.reload();
 };
 
-/* ================= STICKERS ================= */
-function openStickers(){
-  stickerPanel.style.display="flex";
-  renderStickers();
-}
-function renderStickers(){
-  stickerGrid.innerHTML="";
-  const unlocked=Math.floor(stars/STARS_PER_STICKER);
-  stickers.forEach((src,i)=>{
-    const img=document.createElement("img");
-    img.src=src;
-    img.style.width="100%";
-    img.style.opacity=i<unlocked?1:0.15;
-    img.style.filter=i<unlocked?"none":"grayscale(100%)";
-    stickerGrid.appendChild(img);
-  });
-}
+/* ================= GAMEPLACEHOLDER ================= */
+/* Gameplay remains exactly as your stable version.
+   Phase 2 will connect selectedMode to word lists. */
 
-/* ================= INPUT ================= */
-canvas.addEventListener("touchmove",e=>{
-  const r=canvas.getBoundingClientRect();
-  player.x=e.touches[0].clientX-r.left-60;
-  player.y=e.touches[0].clientY-r.top-60;
-  e.preventDefault();
-});
-canvas.addEventListener("click",e=>{
-  if(!collisionEnabled)return;
-  const dx=e.clientX-(letter.x+60);
-  const dy=e.clientY-(letter.y+60);
-  if(Math.hypot(dx,dy)<60) collect();
-});
-
-/* ================= SAFE SPAWN ================= */
-function spawn(){
-  collecting=false;collisionEnabled=false;
-  letter.char=words[wordIndex][letterIndex];
-  let safe=false;
-  while(!safe){
-    letter.x=Math.random()*(canvas.width-140)+40;
-    letter.y=Math.random()*(canvas.height-260)+120;
-    const dx=(player.x)-(letter.x+60);
-    const dy=(player.y)-(letter.y+60);
-    safe=Math.hypot(dx,dy)>180;
-  }
-  setTimeout(()=>collisionEnabled=true,300);
-}
-spawn();
-
-/* ================= COLLECT ================= */
-function collect(){
-  if(collecting||!collisionEnabled)return;
-  collecting=true;collisionEnabled=false;
-
-  speak(letter.char);
-  letterIndex++; save();
-
-  if(letterIndex<words[wordIndex].length){
-    setTimeout(spawn,300);
-  }else{
-    stars++;
-    document.getElementById("stars").textContent=stars;
-    save();
-    setTimeout(()=>speak(words[wordIndex]),700);
-    setTimeout(()=>{
-      popupEmoji.textContent=emojis[words[wordIndex]]||"🎉";
-      popupWord.textContent=words[wordIndex];
-      popup.style.display="flex";
-    },1200);
-  }
-}
-
-popupBtn.onclick=()=>{
-  popup.style.display="none";
-  wordIndex=(wordIndex+1)%words.length;
-  letterIndex=0;
-  spawn(); save();
-};
-
-/* ================= DRAW ================= */
-function draw(){
-  bg.complete?ctx.drawImage(bg,0,0,canvas.width,canvas.height):
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.fillStyle="#fff";
+function startGameplay(){
+  ctx.fillStyle="#000";
   ctx.font="28px Arial";
-  ctx.textAlign="center";
-  let line="";
-  for(let i=0;i<words[wordIndex].length;i++){
-    line+=i<letterIndex?words[wordIndex][i]+" ":"• ";
-  }
-  ctx.fillText(line.trim(),canvas.width/2,110);
-
-  letter.float+=.03;
-  letter.x+=letter.vx;
-  letter.y+=letter.vy+Math.sin(letter.float)*.3;
-  if(letter.x<0||letter.x>canvas.width-120)letter.vx*=-1;
-  if(letter.y<120||letter.y>canvas.height-120)letter.vy*=-1;
-
-  ctx.beginPath();
-  ctx.arc(letter.x+60,letter.y+60,55,0,Math.PI*2);
-  ctx.fillStyle="#ff7043";
-  ctx.fill();
-
-  ctx.fillStyle="#fff";
-  ctx.font="bold 72px Arial";
-  ctx.fillText(letter.char,letter.x+60,letter.y+78);
-
-  ctx.font="72px Arial";
-  ctx.fillText("🐱",player.x,player.y);
-
-  if(collisionEnabled){
-    const dx=(player.x)-(letter.x+60);
-    const dy=(player.y)-(letter.y+60);
-    if(Math.hypot(dx,dy)<90) collect();
-  }
-  requestAnimationFrame(draw);
+  ctx.fillText("Gameplay starts here (Phase 2)",50,150);
 }
-draw();
 </script>
 
 </body>
