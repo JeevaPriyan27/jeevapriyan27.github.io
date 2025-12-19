@@ -12,14 +12,11 @@ canvas{display:block;touch-action:none}
 .topbar{
   position:fixed;top:0;left:0;right:0;
   background:#ffffffee;
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
+  display:flex;flex-wrap:wrap;
   justify-content:space-between;
-  padding:6px 8px;
-  z-index:10
+  padding:6px 8px;z-index:10
 }
-.topbar .group{display:flex;flex-wrap:wrap;align-items:center}
+.group{display:flex;flex-wrap:wrap;align-items:center}
 .btn{
   background:#4caf50;color:#fff;border:none;
   border-radius:14px;padding:8px 12px;
@@ -27,7 +24,6 @@ canvas{display:block;touch-action:none}
 }
 .btn-outline{background:#fff;color:#333;border:2px solid #4caf50}
 
-/* OVERLAYS */
 .overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
   display:flex;align-items:center;justify-content:center;z-index:20
@@ -53,14 +49,10 @@ input{
 
 <body>
 
-<!-- GAME TOP BAR -->
+<!-- TOP BAR -->
 <div class="topbar hidden" id="gameTop">
-  <div class="group">
-    👤 <span id="playerName"></span>
-  </div>
-  <div class="group">
-    ⭐ <span id="stars">0</span>
-  </div>
+  <div class="group">👤 <span id="playerName"></span></div>
+  <div class="group">⭐ <span id="stars">0</span></div>
   <div class="group">
     <button class="btn btn-outline" onclick="showHome()">🏠 Home</button>
     <button class="btn btn-outline" onclick="openStickers()">📘 Stickers</button>
@@ -75,7 +67,6 @@ input{
   <div class="card">
     <h2>Spell & Learn 🐱</h2>
 
-    <!-- PROFILE -->
     <div id="profileEdit">
       <input id="nameInput" placeholder="Enter name (optional)">
       <button class="btn" onclick="saveName()">Save Name</button>
@@ -105,7 +96,7 @@ input{
   </div>
 </div>
 
-<!-- WORD POPUP -->
+<!-- WORD COMPLETE -->
 <div class="overlay hidden" id="popup">
   <div class="card">
     <div id="popupEmoji" style="font-size:90px">🎉</div>
@@ -137,7 +128,7 @@ input{
 </div>
 
 <script>
-/* ================= DATA ================= */
+/* ================= WORD DATA (UNCHANGED COUNTS) ================= */
 const categories={
 Animals:["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR","HORSE","SHEEP","MONKEY","ELEPHANT","DEER","FROG","FISH","BIRD","MOUSE","CAMEL"],
 Food:["APPLE","BANANA","MANGO","ORANGE","GRAPE","MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE","BUTTER","SANDWICH"],
@@ -146,20 +137,25 @@ Nature:["SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS"
 Home:["BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED","DOOR","KEY","PHONE","CLOCK"]
 };
 
-const categoryEmoji={
-Animals:"🐶",Food:"🍎",Vehicles:"🚗",Nature:"🌿",Home:"🏠",Random:"🎲"
-};
-
+/* ================= EMOJI MAP (FULLY FIXED) ================= */
 const emojiMap={
-CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",LION:"🦁",
-TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",ELEPHANT:"🐘",FROG:"🐸",FISH:"🐟",
-BIRD:"🐦",APPLE:"🍎",BANANA:"🍌",MANGO:"🥭",ORANGE:"🍊",MILK:"🥛",
-CAR:"🚗",BUS:"🚌",TRAIN:"🚆",PLANE:"✈️",SUN:"☀️",MOON:"🌙",
-STAR:"⭐",TREE:"🌳",FLOWER:"🌸"
+CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",
+LION:"🦁",TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",SHEEP:"🐑",MONKEY:"🐵",
+ELEPHANT:"🐘",DEER:"🦌",FROG:"🐸",FISH:"🐟",BIRD:"🐦",MOUSE:"🐭",CAMEL:"🐪",
+APPLE:"🍎",BANANA:"🍌",MANGO:"🥭",ORANGE:"🍊",GRAPE:"🍇",MILK:"🥛",
+BREAD:"🍞",EGG:"🥚",CAKE:"🍰",RICE:"🍚",CORN:"🌽",HONEY:"🍯",JUICE:"🧃",
+COOKIE:"🍪",CHEESE:"🧀",BUTTER:"🧈",SANDWICH:"🥪",
+CAR:"🚗",BUS:"🚌",VAN:"🚐",BIKE:"🚲",TRAIN:"🚆",TRUCK:"🚚",SHIP:"🚢",
+PLANE:"✈️",SCOOTER:"🛵",TRACTOR:"🚜",TAXI:"🚕",JEEP:"🚙",BOAT:"🚤",HELICOPTER:"🚁",
+SUN:"☀️",MOON:"🌙",STAR:"⭐",TREE:"🌳",RAIN:"🌧️",SNOW:"❄️",CLOUD:"☁️",
+FLOWER:"🌸",LEAF:"🍃",GRASS:"🌱",RIVER:"🏞️",HILL:"⛰️",MOUNTAIN:"🏔️",
+BALL:"⚽",BOOK:"📘",PEN:"🖊️",CUP:"☕",HAT:"🎩",BAG:"🎒",BOX:"📦",
+CHAIR:"🪑",TABLE:"🪟",BED:"🛏️",DOOR:"🚪",KEY:"🔑",PHONE:"📱",CLOCK:"🕰️"
 };
 
+const categoryEmoji={Animals:"🐶",Food:"🍎",Vehicles:"🚗",Nature:"🌿",Home:"🏠",Random:"🎲"};
 const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
-const STORE="spellLearnPhase21";
+const STORE="spellLearnFinalStable";
 
 /* ================= STATE ================= */
 let profile={name:"",stars:0,mode:"Animals"};
@@ -175,23 +171,16 @@ const bg=new Image();bg.src="bg.png";
 /* ================= INIT ================= */
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
 resize();addEventListener("resize",resize);
-
-loadProfile();
-updateHomeUI();
+loadProfile();updateHomeUI();
 
 /* ================= PROFILE ================= */
 function loadProfile(){
-  try{
-    const d=JSON.parse(localStorage.getItem(STORE));
-    if(d) profile=d;
-  }catch{}
+  try{const d=JSON.parse(localStorage.getItem(STORE));if(d)profile=d}catch{}
 }
-function saveProfile(){
-  localStorage.setItem(STORE,JSON.stringify(profile));
-}
+function saveProfile(){localStorage.setItem(STORE,JSON.stringify(profile))}
 function saveName(){
   const v=nameInput.value.trim();
-  if(v) profile.name=v.substring(0,10);
+  if(v)profile.name=v.substring(0,10);
   saveProfile();updateHomeUI();
 }
 function editName(){
@@ -209,9 +198,7 @@ function updateHomeUI(){
 }
 
 /* ================= NAV ================= */
-function selectMode(m){
-  profile.mode=m;saveProfile();updateHomeUI();
-}
+function selectMode(m){profile.mode=m;saveProfile();updateHomeUI()}
 function startGame(){
   home.style.display="none";
   gameTop.classList.remove("hidden");
@@ -220,18 +207,13 @@ function startGame(){
   stars.textContent=profile.stars;
   setupWords();spawn();draw();
 }
-function showHome(){
-  home.style.display="flex";
-}
+function showHome(){home.style.display="flex"}
 
 /* ================= WORD SET ================= */
 function setupWords(){
   if(profile.mode==="Random"){
-    words=[].concat(...Object.values(categories));
-    words.sort(()=>Math.random()-.5);
-  }else{
-    words=[...categories[profile.mode]];
-  }
+    words=[].concat(...Object.values(categories)).sort(()=>Math.random()-.5);
+  } else words=[...categories[profile.mode]];
   wordIndex=0;letterIndex=0;
 }
 
@@ -273,11 +255,10 @@ function collect(){
 
   if(letterIndex<words[wordIndex].length){
     setTimeout(spawn,300);
-  }else{
+  } else {
     hideLetter=true;
     profile.stars++;saveProfile();
     stars.textContent=profile.stars;
-
     setTimeout(()=>speak(words[wordIndex]),400);
     setTimeout(()=>{
       const w=words[wordIndex];
