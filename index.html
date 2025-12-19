@@ -17,6 +17,9 @@ canvas{display:block;touch-action:none}
   background:#4caf50;color:#fff;border:none;
   border-radius:14px;padding:10px 14px;font-size:16px
 }
+.btn-danger{
+  background:#e53935;
+}
 .overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
   display:flex;align-items:center;justify-content:center;z-index:20
@@ -24,6 +27,15 @@ canvas{display:block;touch-action:none}
 .card{
   background:#fff;border-radius:24px;
   padding:26px;width:85%;max-width:360px;text-align:center
+}
+input{
+  width:100%;
+  padding:10px;
+  font-size:18px;
+  margin:10px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+  text-align:center;
 }
 .stickers{
   display:grid;
@@ -41,7 +53,7 @@ canvas{display:block;touch-action:none}
   <div style="font-size:20px">⭐ <span id="stars">0</span></div>
   <div>
     <button class="btn" onclick="openStickers()">📘 Stickers</button>
-    <button class="btn" onclick="resetGame()">🔄 Reset</button>
+    <button class="btn btn-danger" onclick="openResetConfirm()">🔄 Reset</button>
   </div>
 </div>
 
@@ -80,6 +92,23 @@ canvas{display:block;touch-action:none}
   </div>
 </div>
 
+<!-- RESET CONFIRM -->
+<div class="overlay" id="resetPanel" style="display:none">
+  <div class="card">
+    <h2>Reset Progress</h2>
+    <p style="font-size:16px">
+      This will erase all progress.<br>
+      Type this word to confirm:
+    </p>
+    <div style="font-size:28px;font-weight:bold" id="resetWord"></div>
+    <input id="resetInput" placeholder="Type the word here">
+    <div style="margin-top:10px">
+      <button class="btn" onclick="closeReset()">Cancel</button>
+      <button class="btn btn-danger" id="confirmResetBtn" disabled>Confirm Reset</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ================= SETUP ================= */
 const canvas=document.getElementById("c");
@@ -93,16 +122,14 @@ const bg=new Image();bg.src="bg.png";
 const words=["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","BEAR","APPLE","CAR","BUS","SUN","MOON","STAR"];
 const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
 GOAT:"🐐",LION:"🦁",BEAR:"🐻",APPLE:"🍎",CAR:"🚗",BUS:"🚌",SUN:"☀️",MOON:"🌙",STAR:"⭐"};
-
 const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
-const STARS_PER_STICKER = 100;
-
+const STARS_PER_STICKER=100;
 const STORE="spellLearnStableV3";
 
 /* ================= STATE ================= */
 let wordIndex=0,letterIndex=0,stars=0;
-let collecting=false;
-let collisionEnabled=true;
+let collecting=false,collisionEnabled=true;
+let resetTargetWord="";
 
 const player={x:200,y:300};
 const letter={x:100,y:200,char:"",vx:.6,vy:.5,float:0};
@@ -132,10 +159,41 @@ function speak(t){
   speechSynthesis.speak(u);
 }
 
-/* ================= RESET ================= */
-function resetGame(){
+/* ================= RESET CONFIRM ================= */
+function openResetConfirm(){
+  resetTargetWord=words[Math.floor(Math.random()*words.length)];
+  resetWord.textContent=resetTargetWord;
+  resetInput.value="";
+  confirmResetBtn.disabled=true;
+  resetPanel.style.display="flex";
+}
+function closeReset(){
+  resetPanel.style.display="none";
+}
+resetInput.oninput=()=>{
+  confirmResetBtn.disabled = resetInput.value.toUpperCase() !== resetTargetWord;
+};
+confirmResetBtn.onclick=()=>{
   localStorage.removeItem(STORE);
   location.reload();
+};
+
+/* ================= STICKERS ================= */
+function openStickers(){
+  stickerPanel.style.display="flex";
+  renderStickers();
+}
+function renderStickers(){
+  stickerGrid.innerHTML="";
+  const unlocked=Math.floor(stars/STARS_PER_STICKER);
+  stickers.forEach((src,i)=>{
+    const img=document.createElement("img");
+    img.src=src;
+    img.style.width="100%";
+    img.style.opacity=i<unlocked?1:0.15;
+    img.style.filter=i<unlocked?"none":"grayscale(100%)";
+    stickerGrid.appendChild(img);
+  });
 }
 
 /* ================= INPUT ================= */
@@ -146,7 +204,7 @@ canvas.addEventListener("touchmove",e=>{
   e.preventDefault();
 });
 canvas.addEventListener("click",e=>{
-  if(!collisionEnabled) return;
+  if(!collisionEnabled)return;
   const dx=e.clientX-(letter.x+60);
   const dy=e.clientY-(letter.y+60);
   if(Math.hypot(dx,dy)<60) collect();
@@ -154,10 +212,8 @@ canvas.addEventListener("click",e=>{
 
 /* ================= SAFE SPAWN ================= */
 function spawn(){
-  collecting=false;
-  collisionEnabled=false;
+  collecting=false;collisionEnabled=false;
   letter.char=words[wordIndex][letterIndex];
-
   let safe=false;
   while(!safe){
     letter.x=Math.random()*(canvas.width-140)+40;
@@ -172,24 +228,19 @@ spawn();
 
 /* ================= COLLECT ================= */
 function collect(){
-  if(collecting || !collisionEnabled) return;
-  collecting=true;
-  collisionEnabled=false;
+  if(collecting||!collisionEnabled)return;
+  collecting=true;collisionEnabled=false;
 
   speak(letter.char);
-  letterIndex++;
-  save();
+  letterIndex++; save();
 
-  if(letterIndex < words[wordIndex].length){
+  if(letterIndex<words[wordIndex].length){
     setTimeout(spawn,300);
   }else{
-    // ⭐ ONE STAR PER WORD
     stars++;
     document.getElementById("stars").textContent=stars;
     save();
-
     setTimeout(()=>speak(words[wordIndex]),700);
-
     setTimeout(()=>{
       popupEmoji.textContent=emojis[words[wordIndex]]||"🎉";
       popupWord.textContent=words[wordIndex];
@@ -202,36 +253,14 @@ popupBtn.onclick=()=>{
   popup.style.display="none";
   wordIndex=(wordIndex+1)%words.length;
   letterIndex=0;
-  spawn();
-  save();
+  spawn(); save();
 };
-
-/* ================= STICKERS ================= */
-function openStickers(){
-  stickerPanel.style.display="flex";
-  renderStickers();
-}
-
-function renderStickers(){
-  stickerGrid.innerHTML="";
-  const unlocked=Math.floor(stars / STARS_PER_STICKER);
-
-  stickers.forEach((src,i)=>{
-    const img=document.createElement("img");
-    img.src=src;
-    img.style.width="100%";
-    img.style.opacity=i<unlocked?1:0.15;
-    img.style.filter=i<unlocked?"none":"grayscale(100%)";
-    stickerGrid.appendChild(img);
-  });
-}
 
 /* ================= DRAW ================= */
 function draw(){
   bg.complete?ctx.drawImage(bg,0,0,canvas.width,canvas.height):
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Progress
   ctx.fillStyle="#fff";
   ctx.font="28px Arial";
   ctx.textAlign="center";
@@ -241,7 +270,6 @@ function draw(){
   }
   ctx.fillText(line.trim(),canvas.width/2,110);
 
-  // Letter
   letter.float+=.03;
   letter.x+=letter.vx;
   letter.y+=letter.vy+Math.sin(letter.float)*.3;
@@ -257,17 +285,14 @@ function draw(){
   ctx.font="bold 72px Arial";
   ctx.fillText(letter.char,letter.x+60,letter.y+78);
 
-  // Cat
   ctx.font="72px Arial";
   ctx.fillText("🐱",player.x,player.y);
 
-  // Collision
   if(collisionEnabled){
     const dx=(player.x)-(letter.x+60);
     const dy=(player.y)-(letter.y+60);
     if(Math.hypot(dx,dy)<90) collect();
   }
-
   requestAnimationFrame(draw);
 }
 draw();
