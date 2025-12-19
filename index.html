@@ -11,54 +11,32 @@
     font-family:Arial,sans-serif;
     background:#cfe9ff;
   }
-  canvas{
-    display:block;
-    touch-action:none;
-  }
+  canvas{display:block;touch-action:none}
   .topbar{
-    position:fixed;
-    top:0; left:0; right:0;
-    height:80px;
+    position:fixed;top:0;left:0;right:0;height:80px;
     background:rgba(255,255,255,0.95);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 12px;
-    z-index:5;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 12px;z-index:5;
   }
   .btn{
-    background:#4caf50;
-    color:#fff;
-    border:none;
-    border-radius:14px;
-    padding:10px 14px;
-    font-size:16px;
+    background:#4caf50;color:#fff;border:none;
+    border-radius:14px;padding:10px 14px;font-size:16px;
   }
   .badge{
-    position:fixed;
-    bottom:10px;
-    left:10px;
+    position:fixed;bottom:10px;left:10px;
     background:rgba(255,255,255,0.9);
-    padding:6px 10px;
-    border-radius:12px;
-    font-size:14px;
+    padding:6px 10px;border-radius:12px;font-size:14px;
     z-index:5;
   }
   .overlay{
-    position:fixed;
-    inset:0;
+    position:fixed;inset:0;
     background:rgba(0,0,0,0.45);
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    display:flex;align-items:center;justify-content:center;
     z-index:20;
   }
   .card{
-    background:#fff;
-    border-radius:24px;
-    padding:26px;
-    width:85%;
-    max-width:340px;
+    background:#fff;border-radius:24px;
+    padding:26px;width:85%;max-width:360px;
     text-align:center;
   }
 </style>
@@ -66,7 +44,7 @@
 
 <body>
 
-<!-- TOP UI -->
+<!-- TOP BAR -->
 <div class="topbar">
   <div style="font-size:20px">⭐ <span id="starCount">0</span></div>
   <button class="btn" id="phonicsBtn">🔤 Phonics: OFF</button>
@@ -81,7 +59,7 @@
 <!-- INSTRUCTION -->
 <div class="overlay" id="instruction">
   <div class="card">
-    <div style="font-size:48px">🐱</div>
+    <div style="font-size:52px">🐱</div>
     <p style="font-size:20px;line-height:1.5">
       Move the cat or<br>
       tap the letter bubble<br>
@@ -104,7 +82,12 @@
 <div class="overlay" id="stickerBook" style="display:none">
   <div class="card">
     <h2>Sticker Book</h2>
-    <div id="stickers" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px"></div>
+    <p style="font-size:16px;margin-bottom:12px">
+      Earn 1 sticker for every ⭐ 10 stars!
+    </p>
+    <div id="stickers"
+      style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+    </div>
     <button class="btn" onclick="stickerBook.style.display='none'">Close</button>
   </div>
 </div>
@@ -113,44 +96,39 @@
 /* ================= SETUP ================= */
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
-function resize(){
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
-}
-resize(); addEventListener("resize", resize);
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
+resize();addEventListener("resize",resize);
 
-const bg = new Image(); bg.src="bg.png";
+const bg=new Image();bg.src="bg.png";
 
-/* ================= DATA ================= */
+/* ================= WORDS ================= */
 const words=[
 "CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR",
 "APPLE","MANGO","BANANA","CAR","BUS","TRAIN","SUN","MOON","STAR","TREE"
 ];
 
-const emojiMap={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
-GOAT:"🐐",LION:"🦁",TIGER:"🐯",BEAR:"🐻",APPLE:"🍎",MANGO:"🥭",
-BANANA:"🍌",CAR:"🚗",BUS:"🚌",TRAIN:"🚆",SUN:"☀️",MOON:"🌙",
-STAR:"⭐",TREE:"🌳"};
-
-const stickers=[
-  {img:"Dog.png"},
-  {img:"Apple.png"},
-  {img:"Car.png"},
-  {img:"Flower.png"}
-];
+const emojiMap={
+CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
+GOAT:"🐐",LION:"🦁",TIGER:"🐯",BEAR:"🐻",
+APPLE:"🍎",MANGO:"🥭",BANANA:"🍌",
+CAR:"🚗",BUS:"🚌",TRAIN:"🚆",
+SUN:"☀️",MOON:"🌙",STAR:"⭐",TREE:"🌳"
+};
 
 const phonicsMap={
 A:"ah",B:"buh",C:"cuh",D:"duh",E:"eh",F:"fuh",G:"guh",
-H:"huh",I:"ih",J:"juh",K:"kuh",L:"luh",M:"muh",N:"nuh",
-O:"oh",P:"puh",Q:"kuh",R:"ruh",S:"suh",T:"tuh",U:"uh",
-V:"vuh",W:"wuh",X:"ks",Y:"yuh",Z:"zuh"
+H:"huh",I:"ih",J:"juh",K:"kuh",L:"luh",M:"muh",
+N:"nuh",O:"oh",P:"puh",Q:"kuh",R:"ruh",S:"suh",
+T:"tuh",U:"uh",V:"vuh",W:"wuh",X:"ks",Y:"yuh",Z:"zuh"
 };
+
+const stickerImages=["Dog.png","Apple.png","Car.png","Flower.png"];
 
 /* ================= STATE ================= */
 let wordIndex=0,letterIndex=0,collected="";
 let stars=0,completedWords=0;
 let phonics=false;
-const STORAGE="spellLearn";
+const STORAGE="spellLearnProgress";
 
 /* ================= PLAYER ================= */
 const player={x:200,y:300};
@@ -164,20 +142,25 @@ function save(){
 }
 function load(){
   const d=localStorage.getItem(STORAGE);
-  if(!d) return;
-  const p=JSON.parse(d);
-  wordIndex=p.wordIndex||0;
-  letterIndex=p.letterIndex||0;
-  collected=p.collected||"";
-  stars=p.stars||0;
-  completedWords=p.completedWords||0;
-  phonics=p.phonics||false;
+  if(!d)return;
+  try{
+    const p=JSON.parse(d);
+    wordIndex=p.wordIndex||0;
+    letterIndex=p.letterIndex||0;
+    collected=p.collected||"";
+    stars=p.stars||0;
+    completedWords=p.completedWords||0;
+    phonics=p.phonics||false;
+  }catch{}
 }
 load();
 
 /* ================= UI ================= */
 const starCount=document.getElementById("starCount");
 const phonicsBtn=document.getElementById("phonicsBtn");
+const stickerBook=document.getElementById("stickerBook");
+const stickersDiv=document.getElementById("stickers");
+
 phonicsBtn.onclick=()=>{
   phonics=!phonics;
   phonicsBtn.textContent="🔤 Phonics: "+(phonics?"ON":"OFF");
@@ -191,10 +174,10 @@ document.getElementById("stickerBtn").onclick=()=>{
 };
 
 /* ================= SPEECH ================= */
-function speak(t){
-  if(!speechSynthesis) return;
+function speak(text){
+  if(!speechSynthesis)return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t);
+  const u=new SpeechSynthesisUtterance(text);
   u.rate=0.6;
   speechSynthesis.speak(u);
 }
@@ -202,8 +185,8 @@ function speak(t){
 /* ================= TOUCH ================= */
 canvas.addEventListener("touchmove",e=>{
   const r=canvas.getBoundingClientRect();
-  player.x=e.touches[0].clientX-r.left-50;
-  player.y=e.touches[0].clientY-r.top-50;
+  player.x=e.touches[0].clientX-r.left-60;
+  player.y=e.touches[0].clientY-r.top-60;
   e.preventDefault();
 });
 canvas.addEventListener("click",e=>{
@@ -212,7 +195,7 @@ canvas.addEventListener("click",e=>{
   if(Math.hypot(dx,dy)<60) collect();
 });
 
-/* ================= GAME ================= */
+/* ================= GAME LOGIC ================= */
 function spawn(){
   letter.char=words[wordIndex][letterIndex];
   letter.x=Math.random()*(canvas.width-140)+40;
@@ -222,17 +205,26 @@ spawn();
 
 function collect(){
   collected+=letter.char;
-  stars++; starCount.textContent=stars;
+  stars++;
+  starCount.textContent=stars;
+
   speak(phonics?phonicsMap[letter.char]:letter.char);
+
   letterIndex++;
   save();
+
   if(letterIndex<words[wordIndex].length){
     spawn();
   }else{
     completedWords++;
+
+    /* 🔊 SPEAK FULL WORD */
+    speak(words[wordIndex]);
+
     if(completedWords%5===0){
-      speak("Great job!");
+      setTimeout(()=>speak("Great job!"),800);
     }
+
     setTimeout(()=>{
       popup.style.display="flex";
       popupImg.textContent=emojiMap[words[wordIndex]]||"🎉";
@@ -244,8 +236,8 @@ function collect(){
 popupBtn.onclick=()=>{
   popup.style.display="none";
   wordIndex=(wordIndex+1)%words.length;
-  letterIndex=0; collected="";
-  spawn(); save();
+  letterIndex=0;collected="";
+  spawn();save();
 };
 
 /* ================= DRAW ================= */
@@ -253,15 +245,15 @@ function draw(){
   bg.complete?ctx.drawImage(bg,0,0,canvas.width,canvas.height):
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // UI word dots
+  // Word progress dots
   ctx.fillStyle="#fff";
   ctx.font="28px Arial";
   ctx.textAlign="center";
-  let display="";
+  let line="";
   for(let i=0;i<words[wordIndex].length;i++){
-    display+=i<letterIndex?words[wordIndex][i]+" ":"• ";
+    line+=i<letterIndex?words[wordIndex][i]+" ":"• ";
   }
-  ctx.fillText(display.trim(),canvas.width/2,110);
+  ctx.fillText(line.trim(),canvas.width/2,110);
 
   // Letter
   letter.float+=0.03;
@@ -275,7 +267,7 @@ function draw(){
   ctx.fillStyle="#ff7043";
   ctx.shadowColor="#ffd180";
   ctx.shadowBlur=20;
-  ctx.fill(); ctx.shadowBlur=0;
+  ctx.fill();ctx.shadowBlur=0;
 
   ctx.fillStyle="#fff";
   ctx.font="bold 72px Arial";
@@ -302,12 +294,13 @@ draw();
 function renderStickers(){
   stickersDiv.innerHTML="";
   const unlocked=Math.floor(stars/10);
-  stickers.forEach((s,i)=>{
+  stickerImages.forEach((imgSrc,i)=>{
     const img=document.createElement("img");
-    img.src=s.img;
+    img.src=imgSrc;
     img.style.width="100%";
-    img.style.opacity=i<unlocked?1:0.2;
-    stickers.appendChild(img);
+    img.style.opacity=i<unlocked?1:0.15;
+    img.style.filter=i<unlocked?"none":"grayscale(100%)";
+    stickersDiv.appendChild(img);
   });
 }
 </script>
