@@ -41,7 +41,7 @@ canvas{display:block;touch-action:none}
   <div class="card">
     <div style="font-size:52px">🐱</div>
     <p style="font-size:20px;line-height:1.5">
-      Move the cat or<br>tap the letter bubble<br>to spell the word
+      Move the cat or tap the letter bubble to spell the word
     </p>
     <button class="btn" onclick="instruction.style.display='none'">OK</button>
   </div>
@@ -57,7 +57,7 @@ canvas{display:block;touch-action:none}
 </div>
 
 <script>
-/* ================= SAFE INIT ================= */
+/* ================= SETUP ================= */
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
@@ -70,11 +70,13 @@ const words=["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","BEAR","APPLE","
 const emojis={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",
 GOAT:"🐐",LION:"🦁",BEAR:"🐻",APPLE:"🍎",CAR:"🚗",BUS:"🚌",SUN:"☀️",MOON:"🌙",STAR:"⭐"};
 
-const STORE="spellLearnStable";
+const STORE="spellLearnStableV2";
 
 /* ================= STATE ================= */
 let wordIndex=0,letterIndex=0,stars=0;
-let collecting=false; // 🔒 critical lock
+let collecting=false;
+let collisionEnabled=true;
+
 const player={x:200,y:300};
 const letter={x:100,y:200,char:"",vx:.6,vy:.5,float:0};
 
@@ -95,10 +97,10 @@ load();
 document.getElementById("stars").textContent=stars;
 
 /* ================= SPEECH ================= */
-function speak(t){
+function speak(text){
   if(!speechSynthesis)return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t);
+  const u=new SpeechSynthesisUtterance(text);
   u.rate=.6;
   speechSynthesis.speak(u);
 }
@@ -117,42 +119,59 @@ canvas.addEventListener("touchmove",e=>{
   e.preventDefault();
 });
 canvas.addEventListener("click",e=>{
+  if(!collisionEnabled) return;
   const dx=e.clientX-(letter.x+60);
   const dy=e.clientY-(letter.y+60);
   if(Math.hypot(dx,dy)<60) collect();
 });
 
-/* ================= GAME LOGIC ================= */
+/* ================= SAFE SPAWN ================= */
 function spawn(){
   collecting=false;
+  collisionEnabled=false;
+
   letter.char=words[wordIndex][letterIndex];
-  letter.x=Math.random()*(canvas.width-140)+40;
-  letter.y=Math.random()*(canvas.height-260)+120;
+
+  let safe=false;
+  while(!safe){
+    letter.x=Math.random()*(canvas.width-140)+40;
+    letter.y=Math.random()*(canvas.height-260)+120;
+
+    const dx=(player.x)-(letter.x+60);
+    const dy=(player.y)-(letter.y+60);
+    safe=Math.hypot(dx,dy)>180; // minimum safe distance
+  }
+
+  setTimeout(()=>collisionEnabled=true,300);
 }
 spawn();
 
+/* ================= COLLECT ================= */
 function collect(){
-  if(collecting) return;   // 🔒 prevents double collect
+  if(collecting || !collisionEnabled) return;
   collecting=true;
+  collisionEnabled=false;
 
+  // Speak LETTER
   speak(letter.char);
   stars++;
   document.getElementById("stars").textContent=stars;
-
   letterIndex++;
   save();
 
   if(letterIndex < words[wordIndex].length){
-    setTimeout(spawn,200);
+    setTimeout(spawn,300);
   }else{
-    // 🔊 ALWAYS speak full word
-    speak(words[wordIndex]);
+    // Speak WORD after letter finishes
+    setTimeout(()=>{
+      speak(words[wordIndex]);
+    },700);
 
     setTimeout(()=>{
       popupEmoji.textContent=emojis[words[wordIndex]]||"🎉";
       popupWord.textContent=words[wordIndex];
       popup.style.display="flex";
-    },300);
+    },1200);
   }
 }
 
@@ -169,7 +188,7 @@ function draw(){
   bg.complete?ctx.drawImage(bg,0,0,canvas.width,canvas.height):
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Progress text
+  // Progress
   ctx.fillStyle="#fff";
   ctx.font="28px Arial";
   ctx.textAlign="center";
@@ -199,10 +218,12 @@ function draw(){
   ctx.font="72px Arial";
   ctx.fillText("🐱",player.x,player.y);
 
-  // Collision
-  const dx=(player.x)-(letter.x+60);
-  const dy=(player.y)-(letter.y+60);
-  if(Math.hypot(dx,dy)<90) collect();
+  // Collision (only when enabled)
+  if(collisionEnabled){
+    const dx=(player.x)-(letter.x+60);
+    const dy=(player.y)-(letter.y+60);
+    if(Math.hypot(dx,dy)<90) collect();
+  }
 
   requestAnimationFrame(draw);
 }
