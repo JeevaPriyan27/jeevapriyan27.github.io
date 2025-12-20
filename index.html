@@ -67,7 +67,6 @@ input{
   <div class="card">
     <h2>Spell & Learn 🐱</h2>
 
-    <!-- PROFILE -->
     <div id="profileEdit">
       <input id="nameInput" placeholder="Enter name (optional)">
       <button class="btn" onclick="saveName()">Save Name</button>
@@ -145,6 +144,41 @@ input{
 </div>
 
 <script>
+/* ================= INDEXEDDB (PHASE 3A ADDITION) ================= */
+const DB_NAME="spellLearnDB";
+const DB_STORE="profile";
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=e=>{
+      e.target.result.createObjectStore(DB_STORE);
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e);
+  });
+}
+
+async function saveToDB(data){
+  try{
+    const db=await openDB();
+    const tx=db.transaction(DB_STORE,"readwrite");
+    tx.objectStore(DB_STORE).put(data,"profile");
+  }catch{}
+}
+
+async function loadFromDB(){
+  try{
+    const db=await openDB();
+    const tx=db.transaction(DB_STORE,"readonly");
+    return new Promise(res=>{
+      const req=tx.objectStore(DB_STORE).get("profile");
+      req.onsuccess=()=>res(req.result||null);
+      req.onerror=()=>res(null);
+    });
+  }catch{return null;}
+}
+
 /* ================= DATA ================= */
 const categories={
 Animals:["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR","HORSE","SHEEP","MONKEY","ELEPHANT","DEER","FROG","FISH","BIRD","MOUSE","CAMEL"],
@@ -154,8 +188,7 @@ Nature:["SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS"
 Home:["BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED","DOOR","KEY","PHONE","CLOCK"]
 };
 
-const emojiMap={
-CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",
+const emojiMap={CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",
 LION:"🦁",TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",SHEEP:"🐑",MONKEY:"🐵",
 ELEPHANT:"🐘",DEER:"🦌",FROG:"🐸",FISH:"🐟",BIRD:"🐦",MOUSE:"🐭",CAMEL:"🐪",
 APPLE:"🍎",BANANA:"🍌",MANGO:"🥭",ORANGE:"🍊",GRAPE:"🍇",MILK:"🥛",
@@ -171,7 +204,7 @@ CHAIR:"🪑",TABLE:"🪟",BED:"🛏️",DOOR:"🚪",KEY:"🔑",PHONE:"📱",CLOC
 
 const categoryEmoji={Animals:"🐶",Food:"🍎",Vehicles:"🚗",Nature:"🌿",Home:"🏠",Random:"🎲"};
 const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
-const STORE="spellLearnPhase22";
+const STORE_KEY="spellLearnBackup";
 
 /* ================= STATE ================= */
 let profile={name:"",stars:0,mode:"Animals"};
@@ -187,13 +220,25 @@ const bg=new Image();bg.src="bg.png";
 /* ================= INIT ================= */
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
 resize();addEventListener("resize",resize);
-loadProfile();updateHomeUI();
+
+(async ()=>{
+  const dbData=await loadFromDB();
+  if(dbData){
+    profile=dbData;
+    localStorage.setItem(STORE_KEY,JSON.stringify(profile));
+  }else{
+    const ls=localStorage.getItem(STORE_KEY);
+    if(ls) profile=JSON.parse(ls);
+    saveToDB(profile);
+  }
+  updateHomeUI();
+})();
 
 /* ================= PROFILE ================= */
-function loadProfile(){
-  try{const d=JSON.parse(localStorage.getItem(STORE));if(d)profile=d}catch{}
+function saveProfile(){
+  localStorage.setItem(STORE_KEY,JSON.stringify(profile));
+  saveToDB(profile);
 }
-function saveProfile(){localStorage.setItem(STORE,JSON.stringify(profile))}
 function saveName(){
   const v=nameInput.value.trim();
   if(v)profile.name=v.substring(0,10);
@@ -263,7 +308,7 @@ canvas.addEventListener("click",e=>{
   if(Math.hypot(dx,dy)<60) collect();
 });
 
-/* CAT MOVEMENT (PHASE 2.2 ADDITION) */
+/* CAT MOVEMENT */
 canvas.addEventListener("touchmove",e=>{
   const r=canvas.getBoundingClientRect();
   player.x=e.touches[0].clientX-r.left;
@@ -332,7 +377,8 @@ resetInput.oninput=()=>{
   confirmReset.disabled=resetInput.value.toUpperCase()!==resetWord.textContent;
 };
 confirmReset.onclick=()=>{
-  localStorage.removeItem(STORE);
+  localStorage.removeItem(STORE_KEY);
+  indexedDB.deleteDatabase(DB_NAME);
   location.reload();
 };
 
