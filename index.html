@@ -126,7 +126,7 @@ input{
 <div class="overlay hidden" id="stickerPanel">
   <div class="card">
     <h3>Sticker Book</h3>
-    <p>⭐ 100 stars = 1 sticker</p>
+    <p>⭐ 50 stars = 1 sticker</p>
     <div class="stickers" id="stickerGrid"></div>
     <button class="btn" onclick="stickerPanel.classList.add('hidden')">Close</button>
   </div>
@@ -311,7 +311,7 @@ function closePopup(){
 function openStickers(){
   stickerPanel.classList.remove("hidden");
   stickerGrid.innerHTML="";
-  const unlocked=Math.floor(profile.stars/10);
+  const unlocked=Math.floor(profile.stars/50);
   stickers.forEach((s,i)=>{
     const img=document.createElement("img");
     img.src=s;img.style.width="100%";
