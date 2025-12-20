@@ -67,6 +67,7 @@ input{
   <div class="card">
     <h2>Spell & Learn 🐱</h2>
 
+    <!-- PROFILE -->
     <div id="profileEdit">
       <input id="nameInput" placeholder="Enter name (optional)">
       <button class="btn" onclick="saveName()">Save Name</button>
@@ -92,7 +93,23 @@ input{
     </div>
 
     <p id="modeText"></p>
+
+    <button class="btn" onclick="openInstructions()">ℹ️ How to Play</button><br>
     <button class="btn" style="font-size:20px" onclick="startGame()">▶️ Play</button>
+  </div>
+</div>
+
+<!-- INSTRUCTIONS -->
+<div class="overlay hidden" id="instructions">
+  <div class="card">
+    <h3>How to Play 🐱</h3>
+    <p style="font-size:18px;line-height:1.6">
+      🐱 Move the cat with your finger or mouse<br>
+      🔵 Tap the moving letter bubble<br>
+      🔤 Collect letters to spell the word<br>
+      ⭐ Earn stars and stickers!
+    </p>
+    <button class="btn" onclick="instructions.classList.add('hidden')">OK</button>
   </div>
 </div>
 
@@ -128,7 +145,7 @@ input{
 </div>
 
 <script>
-/* ================= WORD DATA (UNCHANGED COUNTS) ================= */
+/* ================= DATA ================= */
 const categories={
 Animals:["CAT","DOG","COW","PIG","HEN","DUCK","GOAT","LION","TIGER","BEAR","HORSE","SHEEP","MONKEY","ELEPHANT","DEER","FROG","FISH","BIRD","MOUSE","CAMEL"],
 Food:["APPLE","BANANA","MANGO","ORANGE","GRAPE","MILK","BREAD","EGG","CAKE","RICE","CORN","HONEY","JUICE","COOKIE","CHEESE","BUTTER","SANDWICH"],
@@ -137,7 +154,6 @@ Nature:["SUN","MOON","STAR","TREE","RAIN","SNOW","CLOUD","FLOWER","LEAF","GRASS"
 Home:["BALL","BOOK","PEN","CUP","HAT","BAG","BOX","CHAIR","TABLE","BED","DOOR","KEY","PHONE","CLOCK"]
 };
 
-/* ================= EMOJI MAP (FULLY FIXED) ================= */
 const emojiMap={
 CAT:"🐱",DOG:"🐶",COW:"🐄",PIG:"🐷",HEN:"🐔",DUCK:"🦆",GOAT:"🐐",
 LION:"🦁",TIGER:"🐯",BEAR:"🐻",HORSE:"🐴",SHEEP:"🐑",MONKEY:"🐵",
@@ -155,7 +171,7 @@ CHAIR:"🪑",TABLE:"🪟",BED:"🛏️",DOOR:"🚪",KEY:"🔑",PHONE:"📱",CLOC
 
 const categoryEmoji={Animals:"🐶",Food:"🍎",Vehicles:"🚗",Nature:"🌿",Home:"🏠",Random:"🎲"};
 const stickers=["Dog.png","Apple.png","Car.png","Flower.png"];
-const STORE="spellLearnFinalStable";
+const STORE="spellLearnPhase22";
 
 /* ================= STATE ================= */
 let profile={name:"",stars:0,mode:"Animals"};
@@ -247,6 +263,21 @@ canvas.addEventListener("click",e=>{
   if(Math.hypot(dx,dy)<60) collect();
 });
 
+/* CAT MOVEMENT (PHASE 2.2 ADDITION) */
+canvas.addEventListener("touchmove",e=>{
+  const r=canvas.getBoundingClientRect();
+  player.x=e.touches[0].clientX-r.left;
+  player.y=e.touches[0].clientY-r.top;
+  e.preventDefault();
+},{passive:false});
+
+canvas.addEventListener("mousemove",e=>{
+  if(e.buttons!==1)return;
+  const r=canvas.getBoundingClientRect();
+  player.x=e.clientX-r.left;
+  player.y=e.clientY-r.top;
+});
+
 function collect(){
   if(collecting)return;
   collecting=true;collision=false;
@@ -304,6 +335,11 @@ confirmReset.onclick=()=>{
   localStorage.removeItem(STORE);
   location.reload();
 };
+
+/* ================= INSTRUCTIONS ================= */
+function openInstructions(){
+  instructions.classList.remove("hidden");
+}
 
 /* ================= DRAW ================= */
 function draw(){
