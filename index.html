@@ -311,7 +311,7 @@ function closePopup(){
 function openStickers(){
   stickerPanel.classList.remove("hidden");
   stickerGrid.innerHTML="";
-  const unlocked=Math.floor(profile.stars/100);
+  const unlocked=Math.floor(profile.stars/10);
   stickers.forEach((s,i)=>{
     const img=document.createElement("img");
     img.src=s;img.style.width="100%";
