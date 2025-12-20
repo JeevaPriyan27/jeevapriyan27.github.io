@@ -144,6 +144,19 @@ input{
 </div>
 
 <script>
+/* ================= PHASE 3B: REQUEST PERSISTENT STORAGE ================= */
+(async () => {
+  if (navigator.storage && navigator.storage.persist) {
+    try {
+      const isPersisted = await navigator.storage.persisted();
+      if (!isPersisted) {
+        await navigator.storage.persist();
+      }
+    } catch (e) {
+      console.log("Persistent storage request failed", e);
+    }
+  }
+})();
 /* ================= INDEXEDDB (PHASE 3A ADDITION) ================= */
 const DB_NAME="spellLearnDB";
 const DB_STORE="profile";
